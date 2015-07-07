@@ -186,7 +186,7 @@ class Package(object):
         remove old rpms
         '''
         os.chdir("/tmp/")
-        self.ck_cmd = "rpm -qa |grep qemu"
+        self.ck_cmd = "rpm -qa |grep qemu-kvm"
         self.cmd = {
             self.sptcmp[0]: "yum remove qemu-* libcaca* -y",
             self.sptcmp[1]: "yum remove qemu-* libcaca* -y",
@@ -194,9 +194,11 @@ class Package(object):
         if self.p_name not in self.cmd.keys():
             print "'--remove' do not support %s, please check first." % p_name
             sys.exit(1)
-        self.status = commands.getstatusoutput(self.ck_cmd)
+        self.status = commands.getstatusoutput(self.ck_cmd)[0]
+        print self.status
         if self.status:
-            return "will not remove, no %s installed " % self.p_name
+            print "Can not remove, no %s installed " % self.p_name
+            sys.exit(0)
         self.status = commands.getstatusoutput(self.cmd[self.p_name])[0]
         if self.status:
             print "remove failed, need check"
@@ -244,6 +246,7 @@ if __name__ == "__main__":
         f = Package(p_name, build, direc)
         if ('--remove', '') in options:
             print f.remove_rpms()
+            print "sdfadagdads"
         if ('--install', '') in options:
             f.install_rpms()
             sys.exit(0)
