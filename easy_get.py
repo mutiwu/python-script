@@ -15,14 +15,23 @@ class Package(object):
         self.p_name = p_name
         self.build = build
         self.direc = direc
+        self.supportComp = [
+                "qemu-kvm-rhev",
+                "qemu-kvm",
+                "kernel",
+                ]
+        self.supportBuild = [
+                "rhel6",
+                "rhel7",
+                ]
         self.__p_dict = {
-                "qemu-kvm-rhev": "35491",
-                "qemu-kvm": "18283",
-                "kernel": "1231",
+                self.supportComp[0]: "35491",
+                self.supportComp[1]: "18283",
+                self.supportComp[2]: "1231",
                 }
         self.__b_dict = {
-                "rhel7": r"buildID=(\d+).*?el7",
-                "rhel6": r"buildID=(\d+).*?el6",
+                self.supportBuild[1]: r"buildID=(\d+).*?el7",
+                self.supportBuild[0]: r"buildID=(\d+).*?el6",
                 }
         self.__kernel_list = [
                 "kernel",
@@ -43,15 +52,15 @@ class Package(object):
                 ""
                 ]
         self.__rpm_dict = {
-                "kernel": self.__kernel_list,
-                "qemu-kvm-rhev": self.__qemu_rhev_list,
-                "qemu-kvm": self.__qemu_list,
+                self.supportComp[2]: self.__kernel_list,
+                self.supportComp[0]: self.__qemu_rhev_list,
+                self.supportComp[1]: self.__qemu_list,
                 }
         self.__pattern_rpm = r"href=\"(http.*?%s.*?\.x86_64\.rpm)"
         self.__baseurl = "https://brewweb.devel.redhat.com/"
         self.__packageinfo = "packageinfo?packageID="
         self.__buildinfo = "buildinfo?buildID="
-        self.__errormsg = "Only support qemu-kvm, qemu-kvm-rhev and kernel"
+        self.__errormsg = "Only support %s" % ','.join(self.supportComp)
 
     def __rpm_list(self):
         '''
@@ -114,9 +123,9 @@ class Package(object):
         self.path = self.wget_rpms()
         os.chdir(self.path)
         self.cmd = {
-                "qemu-kvm-rhev": "yum install * -y",
-                "qemu-kvm": "yum install * -y",
-                "kernel": "rpm -ivh *",
+                self.supportComp[0]: "yum install * -y",
+                self.supportComp[1]: "yum install * -y",
+                self.supportComp[2]: "rpm -ivh *",
                 }
         if self.p_name not in self.cmd.keys():
             print self.__errormsg
@@ -132,16 +141,16 @@ if __name__ == "__main__":
         the help usage of the script
         '''
         return """Try\t# python easy_get.py -p $package -b $build -d $dir.\n
-        default value:\t-p qemu-kvm-rhev -b rhel7 -d /opt/ --download.
+        e.g. \t-p qemu-kvm-rhev -b rhel7 -d /opt/ --download.
         -p\t--package\tthe package name, support ones:qemu-kvm-rhev,
         \tqemu-kvm, kernel.
         -b\t--build\tthe build, support ones:rhel6, rhel7.
         -d\t--directory\tthe directory that you want to wget the packages,
-        \tdefault is /opt/.
         \n
         --install\tdownload and install the corresponding packages.
         --help\tprint the usage.
         """
+
     try:
         options, args = getopt.getopt(sys.argv[1:], "p:b:d:",
                                       [
@@ -151,34 +160,23 @@ if __name__ == "__main__":
                                       'directory=',
                                       'install',
                                       ])
-        if options == []:
-            print usage()
-            sys.exit(0)
-
         for name, value in options:
             if name == "--help":
                 print usage()
                 sys.exit(0)
             if name in ("-p", "--package"):
                 p_name = value
-            else:
-                p_name = "qemu-kvm-rhev"
-                print p_name
             if name in ("-b", "--build"):
                 build = value
-            else:
-                build = "rhel7"
             if name in ("-d", "--directory"):
                 direc = value
-            else:
-                direc = "/opt/"
         print p_name, build, direc
         f = Package(p_name, build, direc)
         if ('--install', '') in options:
             f.install_rpms()
             sys.exit(0)
         f.wget_rpms()
-    except getopt.GetoptError:
+    except Exception:
         print "wrong type"
         print usage()
         sys.exit(1)
