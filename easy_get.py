@@ -174,11 +174,30 @@ class Package(object):
                 }
         if self.p_name not in self.cmd.keys():
             print self.__errormsg1
+            sys.exit(1)
         self.status = commands.getstatusoutput(self.cmd[self.p_name])[0]
         if self.status:
             print "Install hit error, need check"
             sys.exit(4)
         print "the packages in %s is installed well" % self.p_name
+
+    def remove_rpms(self):
+        '''
+        remove old rpms
+        '''
+        os.chdir("/tmp/")
+        self.cmd = {
+            self.sptcmp[0]: "yum remove qemu-* libcaca* -y",
+            self.sptcmp[1]: "yum remove qemu-* -y",
+            }
+        if self.p_name not in self.cmd.keys():
+            print "'--remove' only support remove qemu/qemu-kvm components."
+            sys.exit(1)
+        self.status = commands.getstatusoutput(self.cmd[self.p_name])[0]
+        if self.status:
+            print "remove failed, need check"
+            sys.exit(4)
+        print "%s related are removed" % self.p_name
 
 if __name__ == "__main__":
     def usage():
@@ -193,6 +212,7 @@ if __name__ == "__main__":
         -d\t--directory\tthe directory that you want to wget the packages,
         \n
         --install\tdownload and install the corresponding packages.
+        --remove\tremove the old packages.
         --help\tprint the usage.
         """
 
@@ -217,6 +237,8 @@ if __name__ == "__main__":
                 direc = value
         print p_name, build, direc
         f = Package(p_name, build, direc)
+        if ('--remove', '') in options:
+            f.remove_rpms()
         if ('--install', '') in options:
             f.install_rpms()
             sys.exit(0)
