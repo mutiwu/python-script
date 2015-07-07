@@ -228,6 +228,7 @@ if __name__ == "__main__":
                                       'build=',
                                       'directory=',
                                       'install',
+                                      'remove',
                                       ])
         for name, value in options:
             if name == "--help":
