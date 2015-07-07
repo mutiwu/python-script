@@ -99,9 +99,8 @@ class Package(object):
         for self.rpm in self.r_list:
             self.p_rpm = re.compile(self.__pattern_rpm % self.rpm)
             self.rpm_url = self.p_rpm.findall(self.b_html)[0]
-            print self.rpm_url
+            print "will download %s" % self.rpm_url
             self.status = commands.getstatusoutput("wget %s" % self.rpm_url)[0]
-            print self.status
             if self.status:
                 print "wget hit error, need check"
                 sys.exit(2)
