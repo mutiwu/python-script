@@ -87,7 +87,7 @@ class Package(object):
                 self.sptcmp[0]: self.__qemu_rhev_list,
                 self.sptcmp[1]: self.__qemu_list,
                 }
-        self.__pattern_rpm = r"href=\"(http.*?%s.*?\.x86_64\.rpm)"
+        self.__pattern_rpm = r"href=\"(http.*?%s\-.*?\.x86_64\.rpm)"
         self.__pattern_fw = r"href=\"(http.*?%s\-firmware.*?\.noarch\.rpm)"
         self.__baseurl = "https://brewweb.devel.redhat.com/"
         self.__packageinfo = "packageinfo?packageID="
@@ -158,7 +158,7 @@ class Package(object):
             if self.status:
                 print "wget hit error, need check"
                 sys.exit(2)
-            print "%s\-firmware is downloaded" % self.sptcmp[2]
+            print "%s-firmware is downloaded" % self.sptcmp[2]
         return self.path
 
     def install_rpms(self):
