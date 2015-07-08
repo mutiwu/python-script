@@ -4,7 +4,8 @@ import re
 import commands
 import getopt
 def usage():
-    return'''
+    return'''-i\t$physical_interface\n-n\t$macvtap_name\n-m\t$macvtap_mode
+    default -i eth0 -n macvtap0 -m vepa\n--help\tusage printout.
     '''
 try:
     opts, args = getopt.getopt(sys.argv[1:], "i:n:m:", ['help', 'maddr'])
