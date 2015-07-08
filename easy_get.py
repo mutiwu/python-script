@@ -4,6 +4,7 @@ import os
 import sys
 import commands
 import getopt
+import signal
 
 
 class Package(object):
@@ -205,24 +206,32 @@ class Package(object):
             sys.exit(4)
         print "%s related are removed" % self.p_name
 
+def usage():
+    '''
+    the help usage of the script
+    '''
+    return """Try\t# python easy_get.py -p $package -b $build -d $dir.\n
+    e.g. \t-p qemu-kvm-rhev -b rhel7 -d /opt/ (default)
+    -p\t--package\tthe package name, support ones:qemu-kvm-rhev,
+    \tqemu-kvm, kernel.
+    -b\t--build\tthe build, support ones:rhel6, rhel7.
+    -d\t--directory\tthe directory that you want to wget the packages,
+    \n
+    --install\tdownload and install the corresponding packages.
+    --remove\tremove the old packages.
+    --help\tprint the usage.
+    """
+def exit_handle(signum):
+    print "signal number is %s , exit" % signum
+    sys.exit(0)
+    
 if __name__ == "__main__":
-    def usage():
-        '''
-        the help usage of the script
-        '''
-        return """Try\t# python easy_get.py -p $package -b $build -d $dir.\n
-        e.g. \t-p qemu-kvm-rhev -b rhel7 -d /opt/ (default)
-        -p\t--package\tthe package name, support ones:qemu-kvm-rhev,
-        \tqemu-kvm, kernel.
-        -b\t--build\tthe build, support ones:rhel6, rhel7.
-        -d\t--directory\tthe directory that you want to wget the packages,
-        \n
-        --install\tdownload and install the corresponding packages.
-        --remove\tremove the old packages.
-        --help\tprint the usage.
-        """
-    p_name = "qemu-kvm-rhev"
-    build = "rhel7"
+    signal.signal(signal.SIGINT, exit_handle)
+    signal.signal(signal.SIGTERM, exit_handle)
+    comp = ['qemu-kvm-rhev', 'qemu-kvm', 'kernel']
+    bld = ['rhel6', 'rhel7']
+    p_name = comp[0]
+    build = bld[0]
     direc = "/opt/"
     try:
         options, args = getopt.getopt(sys.argv[1:], "p:b:d:",
@@ -239,8 +248,13 @@ if __name__ == "__main__":
                 print usage()
                 sys.exit(0)
             if name in ("-p", "--package"):
+                if value not in comp:
+                    print "only support -p : %s " % ','.join(comp)
+                    sys.exit(1)
                 p_name = value
             if name in ("-b", "--build"):
+                if value not in bld:
+                    print "only support -b : %s" % ','.join(bld)
                 build = value
             if name in ("-d", "--directory"):
                 direc = value
@@ -252,7 +266,7 @@ if __name__ == "__main__":
             f.install_rpms()
             sys.exit(0)
         f.wget_rpms()
-    except Exception:
+    except getopt.GetoptError:
         print "wrong type"
         print usage()
         sys.exit(1)
