@@ -211,7 +211,7 @@ if __name__ == "__main__":
         the help usage of the script
         '''
         return """Try\t# python easy_get.py -p $package -b $build -d $dir.\n
-        e.g. \t-p qemu-kvm-rhev -b rhel7 -d /opt/ --download.
+        e.g. \t-p qemu-kvm-rhev -b rhel7 -d /opt/ (default)
         -p\t--package\tthe package name, support ones:qemu-kvm-rhev,
         \tqemu-kvm, kernel.
         -b\t--build\tthe build, support ones:rhel6, rhel7.
@@ -221,7 +221,9 @@ if __name__ == "__main__":
         --remove\tremove the old packages.
         --help\tprint the usage.
         """
-
+    p_name = "qemu-kvm-rhev"
+    build = "rhel7"
+    direc = "/opt/"
     try:
         options, args = getopt.getopt(sys.argv[1:], "p:b:d:",
                                       [
