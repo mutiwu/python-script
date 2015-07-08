@@ -245,8 +245,7 @@ if __name__ == "__main__":
         print p_name, build, direc
         f = Package(p_name, build, direc)
         if ('--remove', '') in options:
-            print f.remove_rpms()
-            print "sdfadagdads"
+            f.remove_rpms()
         if ('--install', '') in options:
             f.install_rpms()
             sys.exit(0)
