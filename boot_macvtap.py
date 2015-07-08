@@ -6,12 +6,14 @@ import getopt
 def usage():
     return'''
     '''
-    
 try:
     opts, args = getopt.getopt(sys.argv[1:], "i:n:m:", ['help', 'maddr'])
     m_mac = "54:52:00:0a:0b:1a"
     m_name = "macvtap0"
-    m_mode = "vepa"
+    modes = ["vepa", "bridge", "passthru", "private",]
+    m_mode = modes[0]
+    p_if = "eth0"
+    pmac = re.compile(r"link/ether ([0-9a-fA-F]{2}([/\s:-][0-9a-fA-F]{2}){5})")
     for name, value in opts:
         if name == "--help":
             print usage()
@@ -20,31 +22,38 @@ try:
         if name == "-n":
             m_name = value
         if name == "-m":
+            if value not in modes:
+                print "only support following modes %s" % ','.join(modes)
             m_mode = value
         if name == "--maddr":
             m_mac = value
+    f_mac = pmac.findall(p_if)[0]
 except getopt.GetoptError:
     print "Please check --help"
     print usage()
     sys.exit(0)
-    
-cmd = "ip link add link %s name %s"
-cmd += " type macvtap mode %s" % (p_if, m_name, m_mode)
-if commands.getstatusoutput(cmd)[0] == 0:
-    print '%s is created ok' % m_name
-else:
+
+cmd = "ip link add link %s name %s" % (p_if, m_name)
+cmd += " type macvtap mode %s" % m_mode
+if commands.getstatusoutput(cmd)[0]:
     print '%s is create failed' % m_name
     sys.exit(1)
-cmd = "ip link set %s add %s up " % (m_name, m_mac)
-if commands.getstatusoutput(cmd)[0] == 0:
-    print 'mac address is changed to %s' % m_mac
+print '%s is created ok' % m_name
+
+if m_mode == modes[2]:
+    m_mac = f_mac
+    print "The mode is %s, will use the mac of %s: %s " % (m_mode, p_if, m_mac)
+    cmd = "ip link set %s up" % m_name
 else:
-    print 'mac address is not changed'
+    cmd = "ip link set %s add %s up " % (m_name, m_mac)
+if commands.getstatusoutput(cmd)[0]:
+    print 'mac address is not changed, cmd hit error.'
     sys.exit(0)
+print 'mac of the macvtap interface now: %s' % m_mac
 cmd = "ip link show %s" % m_name
-macvtap_interface = commands.getstatusoutput(cmd)
+macvtap_interface = commands.getstatusoutput(cmd)[1]
 re_p = re.compile(r"^(\d+):")
-index_list = re_p.findall(macvtap_interface[1])
+index_list = re_p.findall(macvtap_interface)
 macvtap_index = int(index_list[0])
 cmd = '/usr/libexec/qemu-kvm -name rhel  -M rhel6.6.0 -enable-kvm -m 4096 \
     -realtime mlock=off -smp 1,sockets=1,cores=1,threads=1 \
@@ -56,15 +65,15 @@ cmd = '/usr/libexec/qemu-kvm -name rhel  -M rhel6.6.0 -enable-kvm -m 4096 \
     -drive file=/home/rhel67.raw,if=none,id=drive-blk0,format=raw,cache=none \
     -device virtio-blk-pci,bus=pci.0,addr=0x6,drive=drive-blk0,id=blk0,bootindex=1  \
     -netdev tap,fd=%s,vhostfd=%s,id=hostnet0 \
-    -device virtio-net-pci,vectors=4,netdev=hostnet0,id=net0,mac=54:52:00:0a:0b:1a,bus=pci.0,addr=0x3 \
+    -device virtio-net-pci,vectors=4,netdev=hostnet0,id=net0,mac=%s,bus=pci.0,addr=0x3 \
     -vnc :0 -vga cirrus -monitor stdio\
     '
 fd = os.open('/dev/tap%s' % macvtap_index, os.O_RDWR)
 vhostfd = os.open('/dev/vhost-net', os.O_RDWR)
-os.system(cmd % (fd, vhostfd))
+os.system(cmd % (fd, vhostfd, m_mac))
 cmd = "ip link delete %s" % m_name
-if commands.getstatusoutput(cmd)[0] == 0:
-    print '%s is deleted ok' % m_name
-else:
+if commands.getstatusoutput(cmd)[0]:
     print 'ip link delete hits wrong'
     sys.exit(1)
+print '%s is deleted ok' % m_name
+
