@@ -6,9 +6,9 @@ import time
 import threading
 import signal
 def promisc_reload(prses, if_name, timeout):
-    time.sleep(3)
+    time.sleep(3
+    stattime = time.time())
     while True:
-        stattime = time.time()
         pid = [ commands.getoutput("pidof %s" % prs) for prs in prses ]
         if not ( pid[0] and pid[1] ):
             break
