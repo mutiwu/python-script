@@ -9,30 +9,30 @@ def usage():
     '''
 try:
     opts, args = getopt.getopt(sys.argv[1:], "i:n:m:", ['help', 'maddr'])
-    m_mac = "54:52:00:0a:0b:1a"
-    m_name = "macvtap0"
-    modes = ["vepa", "bridge", "passthru", "private",]
-    m_mode = modes[0]
-    p_if = "eth0"
-    pmac = re.compile(r"link/ether ([0-9a-fA-F]{2}([/\s:-][0-9a-fA-F]{2}){5})")
-    for name, value in opts:
-        if name == "--help":
-            print usage()
-        if name == "-i":
-            p_if = value
-        if name == "-n":
-            m_name = value
-        if name == "-m":
-            if value not in modes:
-                print "only support following modes %s" % ','.join(modes)
-            m_mode = value
-        if name == "--maddr":
-            m_mac = value
-    f_mac = pmac.findall(p_if)[0]
 except getopt.GetoptError:
-    print "Please check --help"
+    print "please check --help"
     print usage()
-    sys.exit(0)
+    sys.exit(1)
+m_mac = "54:52:00:0a:0b:1a"
+m_name = "macvtap0"
+modes = ["vepa", "bridge", "passthru", "private",]
+m_mode = modes[0]
+p_if = "eth0"
+pmac = re.compile(r"link/ether ([0-9a-fA-F]{2}([/\s:-][0-9a-fA-F]{2}){5})")
+for name, value in opts:
+    if name == "--help":
+        print usage()
+    if name == "-i":
+        p_if = value
+    if name == "-n":
+        m_name = value
+    if name == "-m":
+        if value not in modes:
+            print "only support following modes %s" % ','.join(modes)
+        m_mode = value
+    if name == "--maddr":
+        m_mac = value
+f_mac = pmac.findall(p_if)[0]
 
 cmd = "ip link add link %s name %s" % (p_if, m_name)
 cmd += " type macvtap mode %s" % m_mode
