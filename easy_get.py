@@ -221,7 +221,7 @@ def usage():
     --remove\tremove the old packages.
     --help\tprint the usage.
     """
-def exit_handle(signum):
+def exit_handle(signum, e):
     print "signal number is %s , exit" % signum
     sys.exit(0)
     
