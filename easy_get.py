@@ -243,30 +243,30 @@ if __name__ == "__main__":
                                       'install',
                                       'remove',
                                       ])
-        for name, value in options:
-            if name == "--help":
-                print usage()
-                sys.exit(0)
-            if name in ("-p", "--package"):
-                if value not in comp:
-                    print "only support -p : %s " % ','.join(comp)
-                    sys.exit(1)
-                p_name = value
-            if name in ("-b", "--build"):
-                if value not in bld:
-                    print "only support -b : %s" % ','.join(bld)
-                build = value
-            if name in ("-d", "--directory"):
-                direc = value
-        print p_name, build, direc
-        f = Package(p_name, build, direc)
-        if ('--remove', '') in options:
-            f.remove_rpms()
-        if ('--install', '') in options:
-            f.install_rpms()
-            sys.exit(0)
-        f.wget_rpms()
     except getopt.GetoptError:
         print "wrong type"
         print usage()
         sys.exit(1)
+    for name, value in options:
+        if name == "--help":
+            print usage()
+            sys.exit(0)
+        if name in ("-p", "--package"):
+            if value not in comp:
+                print "only support -p : %s " % ','.join(comp)
+                sys.exit(1)
+            p_name = value
+        if name in ("-b", "--build"):
+            if value not in bld:
+                print "only support -b : %s" % ','.join(bld)
+            build = value
+        if name in ("-d", "--directory"):
+            direc = value
+    print p_name, build, direc
+    f = Package(p_name, build, direc)
+    if ('--remove', '') in options:
+        f.remove_rpms()
+    if ('--install', '') in options:
+        f.install_rpms()
+        sys.exit(0)
+    f.wget_rpms()

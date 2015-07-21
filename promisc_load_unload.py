@@ -73,31 +73,31 @@ if __name__ == '__main__':
     prses = ["ping", "netperf"]
     try: 
         opts, args = getopt.getopt(sys.argv[1:], "p:t:i:I:", ['help',])
-        for name, value in opts:
-            if name == "-p":
-                if value not in n_protos:
-                    print "only support %s" % ','.join(n_protos)
-                    sys.exit(1)
-                n_proto = value
-            if name == "-t":
-                if int(value) < 10:
-                    print "-t should larger than 9"
-                    sys.exit(1)
-                times = value
-            if name == "-i":
-                host_ip = value
-            if name == "-I":
-                if_name = value
-        if ('--help', '') in opts:
-            print usage()
-            sys.exit(0)
-        p_counts = int(times) * 2
-        timeout = float(p_counts) * 1.5
-        print n_proto, times, p_counts, timeout, host_ip, if_name
     except getopt.GetoptError:
         print "wrong typing, usage:"
         print usage()
+        sys.exit(1)
+    for name, value in opts:
+        if name == "-p":
+            if value not in n_protos:
+                print "only support %s" % ','.join(n_protos)
+                sys.exit(1)
+            n_proto = value
+        if name == "-t":
+            if int(value) < 10:
+                print "-t should larger than 9"
+                sys.exit(1)
+            times = value
+        if name == "-i":
+            host_ip = value
+        if name == "-I":
+            if_name = value
+    if ('--help', '') in opts:
+        print usage()
         sys.exit(0)
+    p_counts = int(times) * 2
+    timeout = float(p_counts) * 1.5
+    print n_proto, times, p_counts, timeout, host_ip, if_name
     p1 = threading.Thread(target=promisc_reload, args=(prses, if_name, timeout))
     p2 = threading.Thread(target=ping, args=(host_ip, if_name, p_counts))
     p1.start()
