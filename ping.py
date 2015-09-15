@@ -37,6 +37,7 @@ class Ping(object):
                 self.cmd = "ping -I %s %s -c %s " % (self.iface, 
                                                      self.ip_addr, self.counts)
                 self.cmd += "-i %s -s %s" % (self.i, self.p)
+		print "the cmd is %s" %self.cmd
                 self.status, self.output = commands.getstatusoutput(self.cmd)
                 if self.status:
                     self.failitem = "ping failed with interval:%s, size:%s " % (self.i, self.p) 
