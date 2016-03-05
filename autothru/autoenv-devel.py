@@ -5,91 +5,96 @@ import commands
 import getopt
 import Defimg
 import Defxml
+import ConfigParser
 
 class ctrVm(object):
-    def __init__(self, user_name, img_path, baseimg):
-	self.user_name = user_name
-	self.img_path = img_path
-	self.baseimg = baseimg
-	self.simg = Defimg.Snapshot(self.user_name, img_path, baseimg)
-	self.sn_name = self.simg.sn_name
+    def __init__(self, user_name):
+        self.user_name = user_name
+        self.cfg = ConfigParser.ConfigParser()
+        self.cfgfile = "env.cfg"
+        self.schar = ","
+        self.base_img_cfg = "base_img_cfg"
+        self.img_path = self.optvalue(self.base_img_cfg, "img_path")
+        self.baseimg = self.optvalue(self.base_img_cfg, "baseimg")
+        self.simg = Defimg.Snapshot(self.user_name, self.img_path, self.baseimg)
+        self.sn_name = self.simg.sn_name
+
+    def optvalue(self, sect, opts):
+        optvalue = self.cfg.get(sect, opt)
+        if self.schar in optvalue:
+            optvalue = optvalue.split{self.schar}
+        return optvalue
 
     def MeCk(self):
-	if self.user_name in self.simg.members:
-	    return 0
-	return 1
+        teams = self.cfg.options("members")
+        count = 0
+        uteam = []
+        for team in teams:
+            teammembers = self.optvalue("members", team)
+            if self.user_name in teammembers:
+                uteam.append(team)
+	            count = +1
+	    if count == 0:
+            print "Invalid user. Exit."
+	        sys.exit(1)
+        elif count > 1:
+            print "The user should be in only one team, but %s is in %s, exit." %(self.user, ",".join(uteam))
+            sys.exit(2)
+        print "User %s from team %s." %(self.user_name, uteam[0])
 
-    def defvm(self, basexml, basemac):
-        self.xml = Defxml.Defxml(basexml, self.sn_name)
-        self.xml.modifyDomainName()
-        self.xml.modifyUuid()
-        self.xml.changeImage(self.img_path, self.baseimg)
-        self.xml.changeMac(basemac)
-        self.cmd = "virsh define %s" % self.xml.newxml
-        self.status, self.output = commands.getstatusoutput(self.cmd)
-        if self.status:
-            print "define vm failed, the virsh print %s" % self.output
+    def defvm(self):
+        basexml = self.optvalue(self.base_img_cfg, "basexml")
+        basemac = self.optvalue(self.base_img_cfg, "basemac")
+        xml = Defxml.Defxml(basexml, self.sn_name)
+        xml.modifyDomainName()
+        xml.modifyUuid()
+        xml.changeImage(self.img_path, self.baseimg)
+        xml.changeMac(basemac)
+        cmd = "virsh define %s" % xml.newxml
+        status, output = commands.getstatusoutput(cmd)
+        if status:
+            print output
             sys.exit(1)
 
     def startvm(self):
         cmd = "virsh start %s" % self.sn_name
-        self.status, self.output = commands.getstatusoutput(cmd)
-        if self.status:
-            print "start vm failed, the virsh print %s" % self.output
+        status, output = commands.getstatusoutput(cmd)
+        if status:
+            print output
             sys.exit(1)
-        print self.output
-
-    def main(self):
-
-
+        print output
 
 def usage():
     pass
 
 if __name__ == "__main__":
-    user_name = "team"
-    img_path = "/home/testimages"
-    baseimg = "SecureOS_auto_win10_base_zh_en.qcow2"
-    basemac = "52:54:00:9c:02:79"
-    basexml = "win10base.xml"
-    try:
-        options, args = getopt.getopt(sys.argv[1:], "p:b:u:",
-                                      [
-                                          'help',
-                                      ]
-                                     )
-    except getopt.GetoptError:
-        print usage()
+    shotargs = "p:b:u:"
+    longargs = ['help',]
+    if len(sys.argv) == 1:
+        usage()
         sys.exit(0)
+    try:
+        options, args = getopt.getopt(sys.argv[1:], shotargs, longargs)
+    except getopt.GetoptError as err:
+        print str(err)
+        sys.exit(2)
     for key, value in options:
+        if "-u" not in options.keys():
+            print "please input the user name."
         if key == "--help":
-            print usage()
+            usage()
             sys.exit(0)
-        if key == "-p":
+        elif key == "-p":
             img_path = value
-        if key == "-b":
+        elif key == "-b":
             baseimg = value
-        if key == "-u":
+        elif key == "-u":
             user_name = value
+        else:
+            assert False, "unhandled option"
             
-if len(sys.argv) == 1:
-    print usage()
-    sys.exit(0)
-
 vm = ctrVm(user_name, img_path, baseimg)
-
-
-print 
-if test.MeCk():
-    print "%s is not in the member list, try the user in %s" %(user_name , " ".join(test.members)) 
-    sys.exit(1)
-if test.CrSn():
-    print "Create Snapshot image failed, and the cmd prints %s" %test.alloutput["CrSn"]
-    sys.exit(1)
-#if test.Ckinfo():
-#    print "check info failed, cmd print %s" %test.alloutput["info"]
-#    sys.exit(1)
-
-
-
-
+vm.MeCk()
+vm.simg.CrSn()
+vm.define()
+vm.startvm()

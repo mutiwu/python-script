@@ -67,5 +67,3 @@ if status:
 cmd = "virsh list --all"
 status, output = commands.getstatusoutput(cmd)
 print output
-
-

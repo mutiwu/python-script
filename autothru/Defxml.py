@@ -12,66 +12,46 @@ class Defxml(object):
         self.xmlpath = "/etc/libvirt/qemu/"
         self.basexml = self.xmlpath + basexml
         self.newxml = self.xmlpath + self.newxml
-        self.cmd = "cp"
-        self.cmd = self.cmd + " " + self.basexml + " " + self.newxml
-        self.status, self.output = commands.getstatusoutput(self.cmd)
-        self.xmltree = ET.parse(self.newxml)
+        self.xmltree = ET.parse(self.basexml)
         self.rootelement = self.xmltree.getroot()
         self.devices = self.rootelement.find("devices")
         
     def modifyNodeName(self, e_node, nodename):
-        self.node = self.rootelement.find(e_node)
-        self.node.text = nodename
+        node = self.rootelement.find(e_node)
+        node.text = nodename
         self.xmltree.write(self.newxml)
 
     def modifyDomainName(self):
         self.modifyNodeName("name", self.sn_name) 
 
     def modifyUuid(self):
-        self.newuuid = str(uuid.uuid1())
-        self.modifyNodeName("uuid", self.newuuid)
+        newuuid = str(uuid.uuid1())
+        self.modifyNodeName("uuid", newuuid)
     
     def changeAttr(self, baseattr, subelement, subattr, basevalue, newvalue):
-        self.number = 0
-        self.attrs = self.devices.findall(baseattr)
+        number = 0
+        attrs = self.devices.findall(baseattr)
         for attr in self.attrs:
             for item in attr.iter(subelement):
-                value = item.attrib[subattr]
-                if value == basevalue:
+                if item.attrib[subattr] == basevalue:
                     item.attrib[subattr] = newvalue
-                    self.number = +1
-        if self.number == 0:
-            return 1
-        if self.number > 0:
-            return 2
+                    number = +1
+        if number == 0:
+            print "Can not find %s in the xml." % basevalue
+            sys.exit(1)
+        elif number > 0:
+            print "There're %s %s that valued %s, please check, should only one in the xml." %(number, baseattr, basevalue)
+            sys.exit(2)
         self.xmltree.write(self.newxml)
 
     def changeImage(self, img_path, baseimg):
-        self.sn_img = img_path + self.sn_name
-        self.changeAttr("disk", "source", "file", baseimg, self.sn_img)
-
-
-#        if self.number == 0 :
-#            print "Base image file name is wrong, check if %s is the right " %baseimg
-#            return 1 
-#        if self.number > 1:
-#            print "%s images named %s in the vm xml file, need check." %(self.number, baseimg)
-#            return 2
+        sn_img = img_path + self.sn_name
+        self.changeAttr("disk", "source", "file", baseimg, sn_img)
 
     def changeMac(self, basemac):
-        self.maclist = []
+        maclist = []
         for i in range(1, 7):
             randstr = "".join(random.sample("0123456789abcdef", 2))
-            self.maclist.append(randstr)
-        self.randmac = ":".join(self.maclist)
-        self.changeAttr("interfaces", "mac", "address", basemac, self.randmac)
-        
-
-
-
-
-
-    
-
-
-
+            maclist.append(randstr)
+        randmac = ":".join(maclist)
+        self.changeAttr("interfaces", "mac", "address", basemac, randmac)
