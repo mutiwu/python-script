@@ -1,22 +1,25 @@
 #!/usr/bin/env python
 # coding=utf-8
 import commands
+import sys
 import time
+
 
 class Snapshot(object):
     def __init__(self, user_name, img_path, baseimg):
 
-        self.c_time = time.strftime('%Y-%m-%d-%H-%M-%S',time.localtime(time.time()))
+        self.c_time = time.strftime('%Y-%m-%d-%H-%M-%S',
+                                    time.localtime(time.time()))
         self.img_path = img_path
         self.baseimg = self.img_path + baseimg
         self.user_name = user_name
         self.sn_name = user_name + self.c_time
         self.qimg_cmd = "qemu-img"
         self.args = {
-            "create": "create -f qcow2 -b %s %s" % (self.baseimg, self.sn_name),
+            "create": "create -f qcow2 -b %s %s"
+            % (self.baseimg, self.sn_name),
             "check_info": "info",
         }
-
 
     def CrSn(self):
         cmd = "cd %s ;" % self.img_path

@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 # coding=utf-8
 import random
-import commands
 import uuid
+import sys
 import xml.etree.ElementTree as ET
+
 
 class Defxml(object):
     def __init__(self, basexml, sn_name):
@@ -15,23 +16,23 @@ class Defxml(object):
         self.xmltree = ET.parse(self.basexml)
         self.rootelement = self.xmltree.getroot()
         self.devices = self.rootelement.find("devices")
-        
+
     def modifyNodeName(self, e_node, nodename):
         node = self.rootelement.find(e_node)
         node.text = nodename
         self.xmltree.write(self.newxml)
 
     def modifyDomainName(self):
-        self.modifyNodeName("name", self.sn_name) 
+        self.modifyNodeName("name", self.sn_name)
 
     def modifyUuid(self):
         newuuid = str(uuid.uuid1())
         self.modifyNodeName("uuid", newuuid)
-    
+
     def changeAttr(self, baseattr, subelement, subattr, basevalue, newvalue):
         number = 0
         attrs = self.devices.findall(baseattr)
-        for attr in self.attrs:
+        for attr in attrs:
             for item in attr.iter(subelement):
                 if item.attrib[subattr] == basevalue:
                     item.attrib[subattr] = newvalue
@@ -40,7 +41,7 @@ class Defxml(object):
             print "Can not find %s in the xml." % basevalue
             sys.exit(1)
         elif number > 0:
-            print "There're %s %s that valued %s, please check, should only one in the xml." %(number, baseattr, basevalue)
+            print "Error: %s %s valued %s." % (number, baseattr, basevalue)
             sys.exit(2)
         self.xmltree.write(self.newxml)
 
