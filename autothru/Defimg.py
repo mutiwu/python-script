@@ -23,18 +23,16 @@ class Snapshot(object):
 
     def CrSn(self):
         cmd = "cd %s ;" % self.img_path
-        cmd = cmd + self.qimg_cmd + self.args["create"]
+        cmd = cmd + self.qimg_cmd + " " + self.args["create"]
         status, output = commands.getstatusoutput(cmd)
         if status:
             print output
             sys.exit(1)
         return status
-
-    def Ckinfo(self):
-        cmd = self.qimg_cmd + self.args["check_info"]
+        cmd = self.qimg_cmd + " " + self.args["check_info"]
         cmd = cmd + self.sn_name
         status, output = commands.getstatusoutput(cmd)
         if status:
             print output
             sys.exit(1)
-        return status
+        return output

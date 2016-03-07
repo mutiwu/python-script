@@ -12,6 +12,7 @@ class ctrVm(object):
         self.user_name = user_name
         self.cfg = ConfigParser.ConfigParser()
         self.cfgfile = "env.cfg"
+        self.cfg.read(self.cfgfile)
         self.schar = ","
         self.base_img_cfg = "base_img_cfg"
         self.img_path = self.optvalue(self.base_img_cfg, "img_path")
@@ -35,13 +36,12 @@ class ctrVm(object):
             if self.user_name in teammembers:
                 uteam.append(team)
                 count = +1
-                if count == 0:
-                    print "Invalid user. Exit."
-                    sys.exit(1)
-                elif count > 1:
-                    print "The user should be in only one team,\
-                            but %s is in %s." % (self.user, ",".join(uteam))
-                    sys.exit(2)
+        if count == 0:
+            print "Invalid user. Exit."
+            sys.exit(1)
+        elif count > 1:
+            print "The user should be in only one team,but %s is in %s." % (self.user, ",".join(uteam))
+            sys.exit(2)
         print "User %s from team %s." % (self.user_name, uteam[0])
 
     def defvm(self):
