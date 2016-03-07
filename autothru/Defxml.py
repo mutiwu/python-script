@@ -36,22 +36,23 @@ class Defxml(object):
             for item in attr.iter(subelement):
                 if item.attrib[subattr] == basevalue:
                     item.attrib[subattr] = newvalue
-                    number = +1
+                    number = number +1
         if number == 0:
             print "Can not find %s in the xml." % basevalue
             sys.exit(1)
-        elif number > 0:
+        elif number > 1:
             print "Error: %s %s valued %s." % (number, baseattr, basevalue)
             sys.exit(2)
         self.xmltree.write(self.newxml)
 
     def changeImage(self, img_path, baseimg):
         sn_img = img_path + self.sn_name
+        baseimg = img_path + baseimg
         self.changeAttr("disk", "source", "file", baseimg, sn_img)
 
     def changeMac(self, basemac):
-        maclist = []
-        for i in range(1, 7):
+        maclist = ["52", "54"]
+        for i in range(1, 5):
             randstr = "".join(random.sample("0123456789abcdef", 2))
             maclist.append(randstr)
         randmac = ":".join(maclist)
