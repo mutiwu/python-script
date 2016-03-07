@@ -56,4 +56,4 @@ class Defxml(object):
             randstr = "".join(random.sample("0123456789abcdef", 2))
             maclist.append(randstr)
         randmac = ":".join(maclist)
-        self.changeAttr("interfaces", "mac", "address", basemac, randmac)
+        self.changeAttr("interface", "mac", "address", basemac, randmac)
