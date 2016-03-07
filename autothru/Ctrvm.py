@@ -15,13 +15,14 @@ class ctrVm(object):
         self.cfg.read(self.cfgfile)
         self.schar = ","
         self.base_img_cfg = "base_img_cfg"
-        self.img_path = self.optvalue(self.base_img_cfg, "img_path")
-        self.baseimg = self.optvalue(self.base_img_cfg, "baseimg")
+        self.user_mac = "user_mac"
+        self.img_path = self.__optvalue(self.base_img_cfg, "img_path")
+        self.baseimg = self.__optvalue(self.base_img_cfg, "baseimg")
         self.simg = Defimg.Snapshot(self.user_name,
                                     self.img_path, self.baseimg)
         self.sn_name = self.simg.sn_name
 
-    def optvalue(self, sect, opts):
+    def __optvalue(self, sect, opts):
         optvalue = self.cfg.get(sect, opts)
         if self.schar in optvalue:
             optvalue = optvalue.split(self.schar)
@@ -32,7 +33,7 @@ class ctrVm(object):
         count = 0
         uteam = []
         for team in teams:
-            teammembers = self.optvalue("members", team)
+            teammembers = self.__optvalue("members", team)
             if self.user_name in teammembers:
                 uteam.append(team)
                 count = +1
@@ -44,14 +45,23 @@ class ctrVm(object):
             sys.exit(2)
         print "User %s from team %s." % (self.user_name, uteam[0])
 
+    def __newmac(self):
+        users = self.cfg.options(self.user_mac)
+        if self.user_name in users:
+            usermac = self.__optvalue(self.user_mac, self.user_name)
+            return usermac
+
     def defvm(self):
-        basexml = self.optvalue(self.base_img_cfg, "basexml")
-        basemac = self.optvalue(self.base_img_cfg, "basemac")
+        basexml = self.__optvalue(self.base_img_cfg, "basexml")
+        basemac = self.__optvalue(self.base_img_cfg, "basemac")
+        newmac = self.__newmac
+        if newmac == "":
+            print "No mac address belongs to %s" % self.user_name
         xml = Defxml.Defxml(basexml, self.sn_name)
         xml.modifyDomainName()
         xml.modifyUuid()
         xml.changeImage(self.img_path, self.baseimg)
-        xml.changeMac(basemac)
+        xml.changeMac(basemac, newmac)
         cmd = "virsh define %s" % xml.newxml
         status, output = commands.getstatusoutput(cmd)
         if status:

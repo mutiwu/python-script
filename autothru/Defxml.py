@@ -17,19 +17,19 @@ class Defxml(object):
         self.rootelement = self.xmltree.getroot()
         self.devices = self.rootelement.find("devices")
 
-    def modifyNodeName(self, e_node, nodename):
+    def __modifyNodeName(self, e_node, nodename):
         node = self.rootelement.find(e_node)
         node.text = nodename
         self.xmltree.write(self.newxml)
 
     def modifyDomainName(self):
-        self.modifyNodeName("name", self.sn_name)
+        self.__modifyNodeName("name", self.sn_name)
 
     def modifyUuid(self):
         newuuid = str(uuid.uuid1())
-        self.modifyNodeName("uuid", newuuid)
+        self.__modifyNodeName("uuid", newuuid)
 
-    def changeAttr(self, baseattr, subelement, subattr, basevalue, newvalue):
+    def __changeAttr(self, baseattr, subelement, subattr, basevalue, newvalue):
         number = 0
         attrs = self.devices.findall(baseattr)
         for attr in attrs:
@@ -48,12 +48,16 @@ class Defxml(object):
     def changeImage(self, img_path, baseimg):
         sn_img = img_path + self.sn_name
         baseimg = img_path + baseimg
-        self.changeAttr("disk", "source", "file", baseimg, sn_img)
+        self.__changeAttr("disk", "source", "file", baseimg, sn_img)
 
-    def changeMac(self, basemac):
-        maclist = ["52", "54"]
-        for i in range(1, 5):
-            randstr = "".join(random.sample("0123456789abcdef", 2))
-            maclist.append(randstr)
-        randmac = ":".join(maclist)
-        self.changeAttr("interface", "mac", "address", basemac, randmac)
+    def changeMac(self, basemac, newmac):
+        self.__changeAttr("interface", "mac", "address", basemac, newmac)
+        
+
+#    def changeMac(self, basemac):
+#        maclist = ["52", "54"]
+#        for i in range(1, 5):
+#            randstr = "".join(random.sample("0123456789abcdef", 2))
+#            maclist.append(randstr)
+#        randmac = ":".join(maclist)
+#        self.__changeAttr("interface", "mac", "address", basemac, randmac)
