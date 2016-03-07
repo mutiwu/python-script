@@ -11,7 +11,7 @@ class ctrVm(object):
     def __init__(self, user_name):
         self.user_name = user_name
         self.cfg = ConfigParser.ConfigParser()
-        self.cfgfile = "env.cfg"
+        self.cfgfile = "env.ini"
         self.cfg.read(self.cfgfile)
         self.schar = ","
         self.base_img_cfg = "base_img_cfg"
