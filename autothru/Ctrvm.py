@@ -5,17 +5,20 @@ import commands
 import Defimg
 import Defxml
 import ConfigParser
+import Config
+import re
 
 
 class ctrVm(object):
     def __init__(self, user_name):
         self.user_name = user_name
-        self.cfg = ConfigParser.ConfigParser()
-        self.cfgfile = "env.ini"
-        self.cfg.read(self.cfgfile)
-        self.schar = ","
-        self.base_img_cfg = "base_img_cfg"
-        self.user_mac = "user_mac"
+        self.__cfg = ConfigParser.ConfigParser()
+        inicfg = Config.Config()
+        self.__cfgfile = inicfg.inifile
+        self.__cfg.read(self.__cfgfile)
+        self.__schar = ","
+        self.__base_img_cfg = "base_img_cfg"
+        self.__user_dhcp = "user_dhcp"
         self.img_path = self.__optvalue(self.base_img_cfg, "img_path")
         self.baseimg = self.__optvalue(self.base_img_cfg, "baseimg")
         self.simg = Defimg.Snapshot(self.user_name,
@@ -23,13 +26,13 @@ class ctrVm(object):
         self.sn_name = self.simg.sn_name
 
     def __optvalue(self, sect, opts):
-        optvalue = self.cfg.get(sect, opts)
-        if self.schar in optvalue:
-            optvalue = optvalue.split(self.schar)
+        optvalue = self.__cfg.get(sect, opts)
+        if self.__schar in optvalue:
+            optvalue = optvalue.split(self.__schar)
         return optvalue
 
     def MeCk(self):
-        teams = self.cfg.options("members")
+        teams = self.__cfg.options("members")
         count = 0
         uteam = []
         for team in teams:
@@ -45,19 +48,25 @@ class ctrVm(object):
             sys.exit(2)
         print "User %s from team %s." % (self.user_name, uteam[0])
 
-    def __newmac(self):
-        users = self.cfg.options(self.user_mac)
-        if self.user_name in users:
-            usermac = self.__optvalue(self.user_mac, self.user_name)
-            return usermac
-
     def defvm(self):
         basexml = self.__optvalue(self.base_img_cfg, "basexml")
         basemac = self.__optvalue(self.base_img_cfg, "basemac")
-        newmac = self.__newmac
-        if newmac == "":
-            print "No mac address belongs to %s" % self.user_name
+        usermacip = self.__cfg.get(self.user_dhcp, self.user_name)
+        if usermacip == "":
+            print "No mac item belongs to %s." % self.user_name
+            sys.exit(1)
+        newmac = usermacip.split(" ")[0] 
         xml = Defxml.Defxml(basexml, self.sn_name)
+        cmd = '''grep %s %s\*\.xml''' %(newmac, xml.xmlpath)
+        status, output = commands.getstatusoutput(cmd)
+        if status:
+            print output
+            sys.exit(1)
+        if output:
+            pobj = re.compile(r"^%s(.*?\.xml)\:" % xml.xmlpath)
+            result_ptn = pobj.search(output)
+            print "The mac %s is used by %s" % (newmac, result_ptn.groups()[0])
+            sys.exit(1)
         xml.modifyDomainName()
         xml.modifyUuid()
         xml.changeImage(self.img_path, self.baseimg)
@@ -70,6 +79,14 @@ class ctrVm(object):
 
     def startvm(self):
         cmd = "virsh start %s" % self.sn_name
+        status, output = commands.getstatusoutput(cmd)
+        if status:
+            print output
+            sys.exit(1)
+        print output
+
+    def listvm(self):
+        cmd = "virsh list %s" % self.sn_name
         status, output = commands.getstatusoutput(cmd)
         if status:
             print output
