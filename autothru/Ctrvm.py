@@ -19,8 +19,8 @@ class ctrVm(object):
         self.__schar = ","
         self.__base_img_cfg = "base_img_cfg"
         self.__user_dhcp = "user_dhcp"
-        self.img_path = self.__optvalue(self.base_img_cfg, "img_path")
-        self.baseimg = self.__optvalue(self.base_img_cfg, "baseimg")
+        self.img_path = self.__optvalue(self.__base_img_cfg, "img_path")
+        self.baseimg = self.__optvalue(self.__base_img_cfg, "baseimg")
         self.simg = Defimg.Snapshot(self.user_name,
                                     self.img_path, self.baseimg)
         self.sn_name = self.simg.sn_name

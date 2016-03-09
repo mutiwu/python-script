@@ -6,6 +6,7 @@ import Ctrvm
 import sys
 import Config
 import re
+import exceptions
 
 parser = argparse.ArgumentParser()
 
@@ -32,7 +33,7 @@ parser.add_argument("-d",
                    )
 args = parser.parse_args(sys.argv[1:])
 
-if len(sys.argv[1:]) > 1:
+if len(sys.argv[1:]) > 2:
     print "More than 1 args found, please give only one arg."
     parser.print_help()
     sys.exit(1)
@@ -46,11 +47,16 @@ if args.run:
     vm.startvm()
 
 if args.new_info:
-    pcom = re.compile(r"^(\w+)\s(\w+)\s(([0-9]{0,3}\.){0,3}[0-9])$")
-    pobj = pcom.search(args.new_info)
-    user_name = pobj.group(1)
-    team_name = pobj.group(2)
-    user_ip = pobj.group(3)
+    try:
+        pcom = re.compile(r"^(\w+)\s(\w+)\s(([0-9]{0,3}\.){0,3}[0-9])$")
+        pobj = pcom.search(args.new_info)
+        user_name = pobj.group(1)
+        team_name = pobj.group(2)
+        user_ip = pobj.group(3)
+    except AttributeError:
+	print "Wrong fommat found"
+	parser.print_help()
+	sys.exit(1)
     cfg.add_users(user_name, team_name, user_ip)
 
 if args.list_info:

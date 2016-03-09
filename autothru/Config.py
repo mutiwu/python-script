@@ -35,7 +35,7 @@ class Config(object):
 
     def __all_users(self):
         us = ""
-        for tu_opts in self.__cfg.item("members"):
+        for tu_opts in self.__cfg.items("members"):
             team, users = tu_opts
             us = us + "," + users
         return us
@@ -81,6 +81,7 @@ class Config(object):
             return True
         return False
 
-    def update
+    def update(self):
+        pass
 
 
