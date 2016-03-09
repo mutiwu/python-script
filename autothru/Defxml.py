@@ -3,6 +3,7 @@
 import uuid
 import sys
 import xml.etree.ElementTree as ET
+import os
 
 
 class Defxml(object):
@@ -10,8 +11,11 @@ class Defxml(object):
         self.__sn_name = sn_name
         self.__newxml = self.__sn_name + ".xml"
         self.xmlpath = "/etc/libvirt/qemu/"
-        self.__basexml = self.xmlpath + basexml
-        self.__newxml = self.xmlpath + self.__newxml
+        self.__basexml = os.path.join(self.xml.path, basexml)
+        if os.path.exists(self.__basexml) is False:
+            print "No %s found, please confirm." % self.__basexml
+            sys.exit(1)
+        self.__newxml = os.path.join(self.xmlpath, self.__newxml)
         self.__xmltree = ET.parse(self.__basexml)
         self.__rootelement = self.__xmltree.getroot()
         self.__devices = self.__rootelement.find("devices")
@@ -45,8 +49,8 @@ class Defxml(object):
         self.__xmltree.write(self.__newxml)
 
     def changeImage(self, img_path, baseimg):
-        sn_img = img_path + self.__sn_name
-        baseimg = img_path + baseimg
+        sn_img = os.path.join(img_path, self.__sn_name)
+        baseimg = os.path.join(img_path, baseimg)
         self.__changeAttr("disk", "source", "file", baseimg, sn_img)
 
     def changeMac(self, basemac, newmac):

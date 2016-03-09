@@ -10,7 +10,6 @@ import re
 class Config(object):
     def __init__(self, inifile="env.ini"):
         self.inifile = inifile
-        self.__vaptn = re.compile(r"^(52\:54(\:[0-9a-fA-F]{2}){4}) (([0-9]{0,3}\.){0,3}[0-9])$")
         self.__cfg = ConfigParser.ConfigParser()
         self.__cfg_list = self.__cfg.read(self.inifile)
         if self.__cfg_list == []:
@@ -98,16 +97,18 @@ class Config(object):
         elif self.__ck_values("members", user_name) > 1:
             print "More than 1 user named %s, please remove invalid ones." %user_name
             sys.exit(2)
+        user_mac = self.__new_mac()
+        vaptn = re.compile(r"^(52\:54(\:[0-9a-fA-F]{2}){4}) (([0-9]{0,3}\.){0,3}[0-9])$")
+        value = user_mac + " " + user_ip
         if self.__cfg.has_option("members", team_name) is False:
             self.__cfg.set("members", team_name, "")
         origin_team_users = self.__cfg.get("members", team_name)
         new_users = user_name + "," + origin_team_users
-        user_mac = self.__new_mac()
         all_mac_ip_list = self.__all_values("user_dhcp")
         ip_list = []
         for mac_ip in all_mac_ip_list:
             try:
-                ipobj = self.__vaptn.search(mac_ip)
+                ipobj = vaptn.search(mac_ip)
                 ip_list.append(ipobj.groups()[2])
             except AttributeError:
                 continue
@@ -140,11 +141,5 @@ class Config(object):
 
     def update_dns(self, user_name):
         mac_ip = self.__cfg.get("user_dhcp", user_name)
-        try:
-            ipobj = self.__vaptn.search(mac_ip)
-        except AttributeError:
-            print "No invalid mac/ip found for %s. " % user_name
-        user_mac = ipobj.groups()[0]
-        user_ip = ipobj.groups()[2]
-
-
+        if mac_ip == "":
+            print "No infos found for %s"
