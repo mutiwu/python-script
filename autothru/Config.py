@@ -139,6 +139,8 @@ class Config(object):
             print "No %s found, do nothing" % user_name  
 
     def update_dns(self, user_name):
+        dnsfile = "dnsmasq.conf"
+        cfgdns = ConfigParser.ConfigParser()
         mac_ip = self.__cfg.get("user_dhcp", user_name)
         try:
             ipobj = self.__vaptn.search(mac_ip)
@@ -146,5 +148,14 @@ class Config(object):
             print "No invalid mac/ip found for %s. " % user_name
         user_mac = ipobj.groups()[0]
         user_ip = ipobj.groups()[2]
+        hostname = user_name
+        dhcphost = user_mac + "," + user_ip + "," + hostname
+        cfgdns.add_section("dhcp-host")
+        cfgdns.set("dhcp-host", "dhcp-host", dhcphost)
+        cfgdns.write(open(dnsfile, "a"))
+
+
+
+        
 
 
