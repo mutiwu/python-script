@@ -97,6 +97,7 @@ if args.new_info:
         parser.print_help()
         sys.exit(1)
     cfg.add_users(user_name, team_name, user_ip)
+    cfg.update_dns(user_name)
 
 if args.list_info:
     cfg.list_items_by_user(args.list_info)
