@@ -57,6 +57,12 @@ parser.add_argument("--add-basemac",
                     metavar="MAC ADDRESS",
                     help="The MAC ADDRESS of the base vm, can find it in the xml file."
                    )
+parser.add_argument("--add-bridge",
+                    action="store",
+                    dest="bridge",
+                    metavar="BRIDGE",
+                    help="The bridge that the vms connected to."
+                   )
 args = parser.parse_args(sys.argv[1:])
 
 if len(sys.argv[1:]) > 2:
@@ -77,6 +83,9 @@ if args.basexml:
 
 if args.basemac:
     cfg.set_basemac(args.basemac)
+
+if args.bridge:
+    cfg.set_bridge(args.bridge)
 
 if args.run:
     vm = Ctrvm.ctrVm(args.run)

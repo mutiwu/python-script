@@ -5,6 +5,7 @@ import ConfigParser
 import sys
 import random
 import re
+import commands
 
 
 class Config(object):
@@ -20,7 +21,7 @@ class Config(object):
         self.__cfg.add_section("members")
         self.__cfg.add_section("base_img_cfg")
         self.__cfg.add_section("user_dhcp")
-        for i in ["img_path", "baseimg", "basexml", "basemac"]:
+        for i in ["img_path", "baseimg", "basexml", "basemac", "bridge"]:
             self.__cfg.set("base_img_cfg", i)
         self.__cfg.write(open(self.inifile, "w"))
 
@@ -55,6 +56,9 @@ class Config(object):
         
     def set_basexml(self, value):
         self.__add_val("basexml", value)
+
+    def set_bridge(self, value):
+        self.__add_val("bridge", value)
 
     def __optlist_ofvar(self, section, val):
         opt_list = []
@@ -139,9 +143,20 @@ class Config(object):
             print "No %s found, do nothing" % user_name  
 
     def update_dns(self, user_name):
+        def uo(option, value):
+            cmd = '''grep %s %s ''' % (option, dnsfile)
+            status, output = commands.getstatusoutput(cmd)
+            if status:
+                print output
+                sys.exit(1)
+            if output:
+                return output
+            cfgdns.set(tmpsection, option, value)
         dnsfile = "dnsmasq.conf"
         cfgdns = ConfigParser.ConfigParser()
         mac_ip = self.__cfg.get("user_dhcp", user_name)
+        br_interface = self.__cfg.get("base_img_cfg", "bridge")
+        uo("interface", br_interface)
         try:
             ipobj = self.__vaptn.search(mac_ip)
         except AttributeError:
@@ -150,9 +165,21 @@ class Config(object):
         user_ip = ipobj.groups()[2]
         hostname = user_name
         dhcphost = user_mac + "," + user_ip + "," + hostname
-        cfgdns.add_section("dhcp-host")
-        cfgdns.set("dhcp-host", "dhcp-host", dhcphost)
+        tmpsection = "dhcphostdnsmasq"
+        cfgdns.add_section(tmpsection)
+        self.__update_option("interface", )
+        cfgdns.set(tmpsection, "dhcp-host", dhcphost)
         cfgdns.write(open(dnsfile, "a"))
-
-
+        cmd = '''grep '\[%s\]' %s''' % (tmpsection, dnsfile)
+        status, output = commands.getstatusoutput(cmd)
+        if status:
+            print output
+            sys.exit(1)
+        if output:
+            cmd = '''sed -i '/\[%s\]/d' %s''' % (tmpsection, dnsfile)
+        status, output = commands.getstatusoutput(cmd)
+        if status:
+            print output
+            sys.exit(1)
+        
 
