@@ -6,12 +6,13 @@ import sys
 import random
 import re
 import commands
+import os
 
 
 class Config(object):
     def __init__(self, inifile="env.ini"):
         self.inifile = inifile
-        self.__vaptn = re.compile(r"^(52\:54(\:[0-9a-fA-F]{2}){4}) (([0-9]{0,3}\.){0,3}[0-9])$")
+        self.__vaptn = re.compile(r"^(52\:54(\:[0-9a-fA-F]{2}){4}) (([0-9]{0,3}\.){3}[0-9]{0,3})$")
         self.__cfg = ConfigParser.ConfigParser()
         self.__cfg_list = self.__cfg.read(self.inifile)
         if self.__cfg_list == []:
@@ -28,6 +29,7 @@ class Config(object):
     def __add_val(self, option, value):
         def set():
             self.__cfg.set("base_img_cfg", option, value)
+            self.__cfg.write(open(self.inifile, "w"))
 
         def quit():
             sys.exit(1)
@@ -146,17 +148,18 @@ class Config(object):
         def uo(option, value):
             cmd = '''grep %s %s ''' % (option, dnsfile)
             status, output = commands.getstatusoutput(cmd)
+            if status == 0:
+                print "There is item in %s like this %s, will overwrite." % (dnsfile, output)
+            cfgdns.set(tmpsection, option, value)
+        dnsfile = "dnsmasq.conf"
+        if os.path.exists(dnsfile) == False:
+            status, output = commands.getstatusoutput("touch %s" %dnsfile)
             if status:
                 print output
                 sys.exit(1)
-            if output:
-                return output
-            cfgdns.set(tmpsection, option, value)
-        dnsfile = "dnsmasq.conf"
         cfgdns = ConfigParser.ConfigParser()
         mac_ip = self.__cfg.get("user_dhcp", user_name)
         br_interface = self.__cfg.get("base_img_cfg", "bridge")
-        uo("interface", br_interface)
         try:
             ipobj = self.__vaptn.search(mac_ip)
         except AttributeError:
@@ -167,9 +170,9 @@ class Config(object):
         dhcphost = user_mac + "," + user_ip + "," + hostname
         tmpsection = "dhcphostdnsmasq"
         cfgdns.add_section(tmpsection)
-        self.__update_option("interface", )
+        uo("interface", br_interface)
         cfgdns.set(tmpsection, "dhcp-host", dhcphost)
-        cfgdns.write(open(dnsfile, "a"))
+        cfgdns.write(open(dnsfile, "w"))
         cmd = '''grep '\[%s\]' %s''' % (tmpsection, dnsfile)
         status, output = commands.getstatusoutput(cmd)
         if status:

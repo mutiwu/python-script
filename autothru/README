@@ -1,0 +1,24 @@
+1.此工具版本为0.1
+2.此工具提供自动化配置SecureOS自动化测试环境，但不提供session的封装，session封装将在v1.1后提供，以完成高度自动化，并提供testrun装饰。
+3.运行此工具需要Windows 10 的镜像作为base，此baseimage已经配置完毕，
+4.需要根据此image的xml文件以及xml文件下的mac地址，在本工具中已经提供此xml文件,将win10 的image文件以及路径改成需要的后手动define即可。
+5.使用autorun.py 来初始化环境：
+./autorun.py --add-imgpath 
+./autorun.py --add-base
+./autorun.py --add-basexml
+./autorun.py --add-basemac
+./autorun.py --add-bridge
+
+6.更新测试人员信息：
+./autorun.py -a "user team ip"
+7.删除测试人员以及相关信息
+./autorun.py -d user
+8.运行测试
+./autorun.py -u user
+
+一直问题：
+1.dnsmasq 的dhcp-host不好用，请根据自己的ip地址手动配置自己的测试环境。
+2.需要手动添加usbkey，安装KMtool，以及相关操作。
+3.手动git clone 自动化测试代码 到c:/
+4.根据自动化测试工具执行测试。
+

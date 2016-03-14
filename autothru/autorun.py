@@ -6,6 +6,7 @@ import Ctrvm
 import sys
 import Config
 import re
+import commands
 
 parser = argparse.ArgumentParser()
 
@@ -94,9 +95,26 @@ if args.run:
     vm.defvm()
     vm.startvm()
 
+def dnsini():
+#    cmd = "systemctl stop dnsmasq.service"
+    cmd = "pkill dnsmasq"
+    status, output = commands.getstatusoutput(cmd)
+    if status:
+        print output
+        sys.exit(1)
+    cmd = "dnsmasq -file=dnsmasq.conf"
+    status, output = commands.getstatusoutput(cmd)
+    if status:
+        print output
+        sys.exit(1)
+    print "dhcp server is updated."
+
+def remain():
+    print "dhcp server is not updated, you need manualy start dnsmasq with the config file under the current dir."
+
 if args.new_info:
     try:
-        pcom = re.compile(r"^(\w+)\s(\w+)\s(([0-9]{0,3}\.){0,3}[0-9])$")
+        pcom = re.compile(r"^(\w+)\s(\w+)\s(([0-9]{0,3}\.){3}[0-9]{0,3})$")
         pobj = pcom.search(args.new_info)
         user_name = pobj.group(1)
         team_name = pobj.group(2)
@@ -107,6 +125,15 @@ if args.new_info:
         sys.exit(1)
     cfg.add_users(user_name, team_name, user_ip)
     cfg.update_dns(user_name)
+    try:
+        select = {
+            "yes": dnsini,
+            "no": remain,
+        }
+        warn = "User added, you need reload the dnsmasq service, do you want reload it now?(yes/no)"
+        select[raw_input(warn)]()
+    except KeyError:
+        print "Invalid choise, please retry and only accecpt yes or no"
 
 if args.list_info:
     cfg.list_items_by_user(args.list_info)
