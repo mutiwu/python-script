@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # coding=utf-8
-import commands
 import os
 import re
 import time
@@ -19,7 +18,7 @@ psize = ["64", "4096", "65535"]
 server_ip = "172.30.132.70"
 cmd = "taskset -c %s netperf -H %s -l %s -C -c -t %s -- -m %s >>%s & "
 for t in proto:
-    finallist = ['Size', t, '\n']
+    finallist = ['Size', '\n', t, '\n']
     tpath = "%s/%s" %(tmpath, t)
     if os.path.exists(tpath):
         print "%s already exists, quit the script." %tpath
