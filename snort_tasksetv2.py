@@ -50,7 +50,7 @@ def p_taskset(plist):
     try:
         task_clist = random.sample(curr_clist, psize)
     except ValueError:
-	print "Not enough cpus to pin, there're %s threads, and just %s cpus can be pinned \(cpu0 will not be pinned\)" % (psize, curr_cpu_n)
+	print "Not enough cpus to pin, there're %s threads, and just %s cpus can be pinned (cpu0 will not be pinned)" % (psize, curr_cpu_n)
 	sys.exit(2)
     for i in range(psize):
         cmd = "taskset -cp %s %s" % (task_clist[i], plist[i])
