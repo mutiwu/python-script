@@ -12,10 +12,10 @@ if os.path.exists(tmpath):
     os.sys.exit(1)
 os.mkdir(tmpath)
 optl = 5
-insts = 5
+insts = 2
 proto = ["TCP_STREAM", "TCP_MAERTS"]
 psize = ["64", "4096", "65535"]
-server_ip = "172.30.132.70"
+server_ip = "127.0.0.1"
 cmd = "taskset -c %s netperf -H %s -l %s -C -c -t %s -- -m %s >>%s & "
 for t in proto:
     finallist = ['Size', '\t', t, '\n']
