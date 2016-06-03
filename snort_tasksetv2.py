@@ -8,7 +8,7 @@ import argparse
 import random
 
 parser= argparse.ArgumentParser()
-parser.add_argument("prog", metavar="N", type=str, help="The first CPU")
+parser.add_argument("prog", metavar="string", type=str, help="Specify the command you want to taskset")
 args = parser.parse_args()
 p_name = args.prog
 
@@ -22,7 +22,6 @@ def pidtree(p_name):
     if output == "":
         print "no %s exist, exit" % p_name
         sys.exit(0)
-#    pid_snort = int(output)
     pid_int_list = output.split('\n')
     plist = []
     for pid in pid_int_list:
