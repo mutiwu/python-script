@@ -9,12 +9,7 @@ import argparse
 
 parser= argparse.ArgumentParser()
 parser.add_argument("int", metavar="N", type=int, help="The first CPU")
-args = parser.parse_args(sys.argv[1:])
-if len(sys.argv[1:]) > 2:
-    print "More than 1 args found, only 1 arg supported."
-    parser.print_help()
-    sys.exit(0)
-
+args = parser.parse_args()
 int_cpu = args.int
 cmd = "pgrep snort"
 status, output = commands.getstatusoutput(cmd)
