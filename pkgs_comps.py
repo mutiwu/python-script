@@ -53,15 +53,23 @@ commands.getstatusoutput(cmd)
 
 xmltree = ET.parse(dstcompsxml)
 compsrootele = xmltree.getroot()
-groups = compsrootele.findall("group/id")
+glst = compsrootele.findall("group")
+gdict = {}
+for g in glst:
+    id = g.find("id")
+    id.text
+    ple = g.find("packagelist")
+    pks = ple.getiterator("packagereq")
+    pl = []
+    for pk in pks:
+        pl.append(pk.text)
+        pkt = pk.text + "*"
+        cmd = "cp %s/%s %s/" %(srcP, pkt, dstP )
+        print cmd
+        commands.getstatusoutput(cmd)
+    gdict[id] = pl
+print gdict
 
-
-pkl = compsrootele.getiterator("packagereq")
-for pk in pkl:
-    pki = pk.text + "*"
-    cmd = "cp %s/%s %s/ " %(srcP, pki, dstP)
-    print cmd
-    commands.getstatusoutput(cmd)
 
 cmd = "createrepo -g %s %s" %(dstcompsxml, dstreiso )
 commands.getstatusoutput(cmd)
