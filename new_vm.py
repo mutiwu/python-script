@@ -4,6 +4,7 @@ import random
 import socket
 import argparse
 import sys
+import time
 
 class NewVM(object):
     def __init__(self, vm_name, switch, g_vnc):
@@ -45,7 +46,7 @@ class NewVM(object):
             "N":self.chc_n,
         }
         if os.path.exists(vmimg):
-            chc = raw_input("%s exist, if will use this image as vm bootdisk.(Y/N)" %vmimg)
+            chc = raw_input("%s exist, if use this VM image.(Y/N)" %vmimg)
             newimg = self.chc_c(cic, chc, vmimg)
             return newimg, vm_name
         else:
@@ -217,7 +218,7 @@ class NewVM(object):
         if not os.path.exists(cmdpath):
             os.mkdir(cmdpath)
         if os.path.exists(gcmdpath):
-            return 1, gcmdpath 
+            return 1, gcmdpath, vm_name 
         vnarg = " -name %s" %vm_name
         mac_addr = self.new_mac()
         vport = self.vnc_port(self.vm_vnc)
@@ -249,7 +250,7 @@ class NewVM(object):
         f_vm = open(gcmdpath, 'w')
         f_vm.write(vm_cli)
         f_vm.close()
-        return 0, gcmdpath
+        return 0, gcmdpath, vm_name
 
 
 parser = argparse.ArgumentParser()
@@ -267,21 +268,29 @@ parser.add_argument("-p",
                     metavar="TCP PORT",
                     help="If not assign a port, will assign random." 
                    )
-parser.add_argument("--run",
-                    nargs = '?',
-                    action="store",
-                    dest="vmrun",
-                    const = 'true',
-                    default = 'false',
-                    metavar="VM NAME",
-                    help="run the specified vm"
-                   )
 parser.add_argument("-s",
                     action="store",
                     dest="switch",
                     default="switch",
                     metavar="LINUX BRIDGE",
                     help="specify the linux bridge you want to use."
+                   )
+parser.add_argument("--run",
+                    nargs = '?',
+                    action="store",
+                    dest="vmrun",
+                    const = 'true',
+                    default = 'false',
+                    help="run the specified vm"
+                   )
+parser.add_argument("--iso",
+                    nargs = '?',
+                    action="store",
+                    dest="vmcdrom",
+                    const="true",
+                    default='false',
+                    help="if insert a cdrom(an iso) to the vm"
+                    
                    )
 args = parser.parse_args(sys.argv[1:])
 
@@ -294,7 +303,34 @@ def runvm(gcmdpath):
         print "the vm is not started, please check your cmdline.\n"
         readcmd(gcmdpath)
         os.sys.exit(status)
-    os.sys.exit(0)
+
+def changecd(vm_name):
+    iso_path = raw_input("please provide the path of the iso:\n")
+    if not os.path.exists(iso_path):
+        chc = raw_input("the iso %s does not exist,if retry?(Y/N))" %iso_path)
+        err = "no"
+        while err == "no":
+            if chc == "Y":
+                err = "yes"
+                return changecd(vm_name)
+            elif chc == "N":
+                print "Will not change cdrom for %s"%vm_name
+                err = "yes"
+                return 0
+            else:
+                chc = raw_input("invalid input, retry(Y/N):")
+                err = "no"
+    cmd = "change drive-scsi0-0-0-0 %s" %iso_path
+    hmpcmd(cmd, vm_name)
+
+
+def hmpcmd(hmpcli, vm_name):
+    cmd = '''echo "%s"|nc -U /tmp/%shmpsocket.sock''' %(hmpcli, vm_name)
+    status, output = commands.getstatusoutput(cmd)
+    if status:
+        print output
+        print "failed to commands the qemu.\n"
+        os.sys.exit(status)
 
 def readcmd(gcmdpath):
     f_vm = open(gcmdpath)
@@ -314,8 +350,22 @@ vm_name = args.vm_name
 g_vnc = args.vnc_p
 ifrun = args.vmrun
 switch = args.switch
+vmcdrom = args.vmcdrom
+if ifrun == "false" and vmcdrom == "true":
+    cmd = "ps -aux |grep %s" %vm_name
+    status, output = commands.getstatusoutput(cmd)
+    if status:
+        print output
+        os.sys.exit(status)
+    if "-name %s" %vm_name not in output:
+        print "VM %s is not running, will do nothing." %vm_name
+        os.sys.exit(status)
+    print "WARN: Only insert iso to the running VM, no need specify -s, -p\n"
+    changecd(vm_name)
+    os.sys.exit(0)
+
 new_vm = NewVM(vm_name, switch, g_vnc)
-status, gcmdpath = new_vm.VM_srp()
+status, gcmdpath, vm_name = new_vm.VM_srp()
 if ifrun == "true":
     if status == 1:
         print "the qemu script exist, -s and -p won't work. the cmdline is  like this:\n"
@@ -323,6 +373,9 @@ if ifrun == "true":
         ch = raw_input("\n if direct run it?(Y/N)")
         if ch == "Y":
             runvm(gcmdpath)
+            if vmcdrom == "true":
+                #time.sleep(3)
+                changecd(vm_name)
             os.sys.exit(0)
         elif ch == "N":
             print "WARN: %s exist, you can start the script by shell, and remove it if you like.\n" %gcmdpath
@@ -334,11 +387,14 @@ if ifrun == "true":
         print "The cmdline is like this:\n"
         readcmd(gcmdpath)
         runvm(gcmdpath)
+        if vmcdrom == "true":
+            #time.sleep(3)
+            changecd(vm_name)
         os.sys.exit(0)
     else:
         print "got wrong code#%s, quit.\n" %status
         os.sys.exit(status)
-elif ifrun == "false":
+elif ifrun == "false" and vmcdrom == "false":
     if status == 1:
         print "%s exists, and no script created, please check if the script is the one you want, you can start with --run or use shell to run it.\n" %gcmdpath
         readcmd(gcmdpath)
