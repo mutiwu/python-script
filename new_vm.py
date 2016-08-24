@@ -378,13 +378,9 @@ snswitch = args.snswitch
 if ifrun == "true" and snswitch == "true":
     new_vm = NewVM(vm_name, switch, g_vnc)
     status, gcmdpath, vm_name = new_vm.VM_srp()
-    ftmp = open(gcmdpath)
-    try:
-        cmdtext = ftmp.read()
-    finally:
-        ftmp.close()
+    cmdtext, vnc_port = readcmd(gcmdpath)
     tmpcmd = cmdtext + " -snapshot"
-    print tmpcmd
+    breakprint(tmpcmd)
     status  = os.system("%s &" %tmpcmd)
     if status:
         breakprint("the vm is not started, please check your cmdline.\n")
@@ -392,6 +388,7 @@ if ifrun == "true" and snswitch == "true":
         os.sys.exit(status)
     if vmcdrom == 'true':
         changecd(vm_name)
+    breakprint("Connect the vnc with vnc port %s" %vnc_port)
     os.sys.exit(0)
     
     
