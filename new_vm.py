@@ -295,7 +295,14 @@ parser.add_argument("--iso",
                     const="true",
                     default='false',
                     help="if insert a cdrom(an iso) to the vm"
-                    
+                   )
+parser.add_argument("--snapshot",
+                    nargs = '?',
+                    action = 'store',
+                    dest = 'snswitch',
+                    const = 'true',
+                    default = 'false',
+                    help = 'Start a vm in snapshot mode'
                    )
 args = parser.parse_args(sys.argv[1:])
 
@@ -367,6 +374,27 @@ g_vnc = args.vnc_p
 ifrun = args.vmrun
 switch = args.switch
 vmcdrom = args.vmcdrom
+snswitch = args.snswitch
+if ifrun == "true" and snswitch == "true":
+    new_vm = NewVM(vm_name, switch, g_vnc)
+    status, gcmdpath, vm_name = new_vm.VM_srp()
+    ftmp = open(gcmdpath)
+    try:
+        cmdtext = ftmp.read()
+    finally:
+        ftmp.close()
+    tmpcmd = cmdtext + " -snapshot"
+    print tmpcmd
+    status  = os.system("%s &" %tmpcmd)
+    if status:
+        breakprint("the vm is not started, please check your cmdline.\n")
+        readcmd(gcmdpath)
+        os.sys.exit(status)
+    if vmcdrom == 'true':
+        changecd(vm_name)
+    os.sys.exit(0)
+    
+    
 if ifrun == "false" and vmcdrom == "true":
     cmd = "ps -aux |grep %s" %vm_name
     status, output = commands.getstatusoutput(cmd)
@@ -389,7 +417,7 @@ if ifrun == "true":
         breakprint(vmfcmd)
         ch = raw_input("\n if direct run it?(Y/N)")
         if ch == "Y":
-            runvm(gcmdpath)
+            runvm(gcmdpath,snswitch)
             if vmcdrom == "true":
                 #time.sleep(3)
                 changecd(vm_name)
@@ -405,7 +433,7 @@ if ifrun == "true":
         vmfcmd, vnc_port = readcmd(gcmdpath)
         breakprint("The cmdline is like this:\n")
         breakprint(vmfcmd)
-        runvm(gcmdpath)
+        runvm(gcmdpath,snswitch)
         if vmcdrom == "true":
             #time.sleep(3)
             changecd(vm_name)
