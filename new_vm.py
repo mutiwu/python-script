@@ -11,8 +11,10 @@ import re
 
 
 class NewVM(object):
-    def __init__(self, vm_name, switch, g_vnc):
+    def __init__(self, vm_name, switch, m_size, c_nums, g_vnc):
         self.vm_name = vm_name
+        self.m_size = m_size
+        self.c_nums = c_nums
         self.vm_vnc = g_vnc
         self.switch = switch
 
@@ -232,8 +234,7 @@ class NewVM(object):
         ifscript = self.create_switch(self.switch)
 
         vm_qemu = "/usr/libexec/qemu-kvm \\\n"
-        vm_bsarg = ('-m 16G -realtime mlock=off \\\n'
-                    '-smp 8,sockets=1,cores=8,threads=1 \\\n'
+        vm_bsarg = ('-realtime mlock=off \\\n'
                     '-no-user-config -nodefaults -rtc base=utc \\\n'
                     '-boot menu=on -usb -device usb-kbd,id=input0 \\\n'
                     '-device usb-mouse,id=input1 -vga std \\\n'
@@ -245,6 +246,9 @@ class NewVM(object):
                     '-boot menu=on \\\n'
                     '-drive if=none,id=drive-scsi0-0-0-0,readonly=on,'
                     'format=raw \\\n')
+        memarg = '-m %s \\\n' % self.m_size
+        cpuarg = ('-smp %s,sockets=1,cores=%s,threads=1 '
+                  '\\\n') % (self.c_nums, self.c_nums)
         imgarg = ('-drive file=%s,if=none,id=drive-virtio-disk0,'
                   'format=qcow2,cache=none \\\n') % vm_img
         vncarg = "-vnc :%s \\\n" % vport
@@ -257,6 +261,8 @@ class NewVM(object):
         vm_clilist = [
             vm_qemu,
             mtearg,
+            memarg,
+            cpuarg,
             vnarg,
             vm_bsarg,
             qmparg,
@@ -343,6 +349,18 @@ if __name__ == "__main__":
                         type=int,
                         metavar="TCP PORT",
                         help="If not assign a port, will assign random.")
+    parser.add_argument("-m",
+                        action="store",
+                        dest="m_size",
+                        metavar="MEM SIZE",
+                        default="4G",
+                        help="Specify the memory you want to use, default 4G")
+    parser.add_argument("-c",
+                        action="store",
+                        dest="c_nums",
+                        metavar="CPU NUMS",
+                        default="4",
+                        help="Specify the CPU numbers to the vm, default '4'")
     parser.add_argument("-s",
                         action="store",
                         dest="switch",
@@ -378,13 +396,15 @@ if __name__ == "__main__":
         os.sys.exit(0)
 
     vm_name = args.vm_name
+    m_size = args.m_size
+    c_nums = args.c_nums
     g_vnc = args.vnc_p
     ifrun = args.vmrun
     switch = args.switch
     vmcdrom = args.vmcdrom
     snswitch = args.snswitch
     if ifrun == "true" and snswitch == "true":
-        new_vm = NewVM(vm_name, switch, g_vnc)
+        new_vm = NewVM(vm_name, switch, m_size, c_nums, g_vnc)
         status, gcmdpath, vm_name = new_vm.VM_srp()
         cmdtext, vnc_port = readcmd(gcmdpath)
         tmpcmd = cmdtext + " -snapshot"
@@ -413,7 +433,7 @@ if __name__ == "__main__":
         changecd(vm_name)
         os.sys.exit(0)
 
-    new_vm = NewVM(vm_name, switch, g_vnc)
+    new_vm = NewVM(vm_name, switch, m_size, c_nums, g_vnc)
     status, gcmdpath, vm_name = new_vm.VM_srp()
     if ifrun == "true":
         if status == 1:
