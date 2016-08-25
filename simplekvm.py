@@ -341,7 +341,8 @@ def listvms():
     breakprint("The running vms and their corresponding vnc ports:\n")
     breakprint("VM\tVNC port:\n")
     for vm_name, port in nm_pt_list:
-        print "%s\t%s" % (vm_name, port)
+        vnc_p = int(port) + 5900
+        print "%s\t%s" % (vm_name, vnc_p)
         breakprint("Please connect with the right port")
 
 
@@ -410,7 +411,7 @@ if __name__ == "__main__":
                         help='Start a vm in snapshot mode')
     parser.add_argument("--version",
                         action="version",
-                        version="%(prog)s 0.9")
+                        version="%(prog)s 0.10")
     args = parser.parse_args(sys.argv[1:])
 
     if ''.join(sys.argv[1:]) == '--list':
