@@ -19,7 +19,7 @@ class NewVM(object):
         self.switch = switch
 
     def bp(self, str):
-        breakline = "*"
+        breakline = "-" * 5 + "*" + "-" * 5
         print breakline
         print str
         print breakline
@@ -55,11 +55,11 @@ class NewVM(object):
         vmimg = "%s/%s.qcow2" % (imgpath, vm_name)
         if not os.path.exists(imgpath):
             os.mkdir(imgpath)
-        cic = {
-            "Y": self.chc_y,
-            "N": self.chc_n,
-        }
         if os.path.exists(vmimg):
+            cic = {
+                    "Y": self.chc_y,
+                    "N": self.chc_n,
+                }
             chc = raw_input("%s exist, if use this VM image.(Y/N)" % vmimg)
             newimg = self.chc_c(cic, chc, vmimg)
             return newimg, vm_name
@@ -77,11 +77,9 @@ class NewVM(object):
             os.sys.exit(1)
 
     def chmenu(self, vmimg):
-        chc = raw_input('''
-        1:  Copy from an exist IMG
-        2:  create and install a new OS
-        q:  quit
-                        \n''')
+        chc = raw_input(('1:  Copy from an exist IMG\n'
+                         '2:  create a new IMG\n'
+                         'q:  quit\n'))
         cic = {
             "1": self.img_cp,
             "2": self.cre_img,
@@ -101,14 +99,12 @@ class NewVM(object):
             os.sys.exit(3)
 
     def chc_n(self, vmimg):
-        self.bp("Won't use the %s as the bootdisk, so " % vmimg)
-        vm_name = raw_input("please specify a new vm name:\n")
+        vm_name = raw_input(("Won't use the %s as the bootdisk, so "
+                            "please specify a new vm name:\n") % vmimg)
         return self.img_handle(vm_name)
 
     def img_cp(self, vmimg):
         srcimg = raw_input("Please specify the base image:\n")
-        if srcimg == "quit":
-            os.sys.exit(0)
         if not os.path.exists(srcimg):
             self.bp("%s does not exist. back to menu:\n" % srcimg)
             return self.chmenu(vmimg)
@@ -116,7 +112,7 @@ class NewVM(object):
             cmd = "cp %s %s" % (srcimg, vmimg)
             status, output = commands.getstatusoutput(cmd)
             if status:
-                self.bp("CMD cp failed\n")
+                self.bp("cp hit error\n")
                 self.bp(output)
                 os.sys.exit(status)
 
@@ -145,8 +141,8 @@ class NewVM(object):
         elif res == 301:
             return self.gen_vncp()
         else:
-            self.bp("Generae vnc port faild.\n")
-            self.bp("Invalid code#%s, exit.\n" % res)
+            self.bp("Invalid ErrorCode#%s, exit." % res)
+            self.bp("Generae vnc port faild.")
             os.sys.exit(res)
 
     def vnc_port(self, vnc_p):
@@ -171,7 +167,7 @@ class NewVM(object):
 
     def __chk_vncp(self, old_p):
         if type(old_p) != int:
-            self.bp("Invalid type, need an int")
+            self.bp("Invalid type, port id should be in int type.")
             return 301
         vnc_p = old_p + 5900
         if vnc_p < 5900:
@@ -181,7 +177,7 @@ class NewVM(object):
         try:
             rt_value = s.connect_ex(('127.0.0.1', vnc_p))
             if rt_value == 0:
-                self.bp("Used in system")
+                self.bp("%s is in use of this host" % vnc_p)
                 return 301
             return 303
         except OverflowError:
@@ -190,11 +186,10 @@ class NewVM(object):
 
     def create_switch(self, switch):
         ifsrppath = "/etc/qemu-%s-ifup" % switch
-        ifscript = '''#!/bin/show
-        switch=%s
-        ip link set $1 up
-        brctl addif ${switch} $1
-        ''' % switch
+        ifscript = ('#!/bin/sh\n'
+                    'switch=%s\n'
+                    'ip link set $1 up\n'
+                    'brctl addif ${switch} $1\n') % switch
         if not os.path.exists(ifsrppath):
             iswrite = open(ifsrppath, 'w')
             iswrite.write(ifscript)
@@ -232,7 +227,6 @@ class NewVM(object):
         vport = self.vnc_port(self.vm_vnc)
         mtearg = self.mtarg()
         ifscript = self.create_switch(self.switch)
-
         vm_qemu = "/usr/libexec/qemu-kvm \\\n"
         vm_bsarg = ('-realtime mlock=off \\\n'
                     '-no-user-config -nodefaults -rtc base=utc \\\n'
@@ -241,11 +235,16 @@ class NewVM(object):
                     '-device scsi-cd,bus=scsi0.0,channel=0,scsi-id=1,'
                     'lun=0,drive=drive-scsi0-0-0-1,'
                     'id=scsi0-0-0-1,bootindex=2 \\\n'
+                    '-device scsi-cd,bus=scsi0.0,channel=0,scsi-id=2,'
+                    'lun=0,drive=drive-scsi0-0-0-2,'
+                    'id=scsi0-0-0-2 \\\n'                    
                     '-device scsi-hd,bus=scsi0.0,channel=0,'
                     'scsi-id=0,lun=0,drive=drive-scsi0-0-0-0,'
                     'id=scsi0-0-0-0,bootindex=1 \\\n'
                     '-boot menu=on \\\n'
                     '-drive if=none,id=drive-scsi0-0-0-1,readonly=on,'
+                    'format=raw \\\n'
+                    '-drive if=none,id=drive-scsi0-0-0-2,readonly=on,'
                     'format=raw \\\n')
         memarg = '-m %s \\\n' % self.m_size
         cpuarg = ('-smp %s,sockets=1,cores=%s,threads=1 '
@@ -280,32 +279,52 @@ class NewVM(object):
         return 0, gcmdpath, vm_name
 
 
-def runvm(gcmdpath):
+def runvm(gcmdpath, vmcdrom, vm_name):
     shcmd = " sh %s & " % gcmdpath
     status = os.system(shcmd)
     if status:
         breakprint("the vm is not started, please check your cmdline.")
         readcmd(gcmdpath)
         os.sys.exit(status)
+    if vmcdrom == "true":
+        changecd(vm_name)
+    breakprint("Connect vnc port %s, if you like" % vnc_port)
+    os.sys.exit(0)
 
 
 def changecd(vm_name):
+    cd_dir = {
+        '1': 'drive-scsi0-0-0-1',
+        '2': 'drive-scsi0-0-0-2',
+        'q': '0'
+        }
+    cd_id = raw_input(('Please input which cdrom to use:\n'
+                        '1: CDROM1\n'
+                        '2: CDROM2\n'
+                        'q: Will not change cdrom for %s\n') % vm_name)
+    try:
+        cd = cd_dir[cd_id]
+    except KeyError:
+        breakprint('invalid input, please follow the menu prompts.')
+        return changecd(vm_name)
+    return retry_iso(cd, vm_name)
+
+        
+def retry_iso(cd, vm_name):
+    if cd == '0':
+        return 0    
     iso_path = raw_input("please provide the path of the iso:\n")
     if not os.path.exists(iso_path):
         chc = raw_input("the iso %s does not exist,if retry?(Y/N))" % iso_path)
-        err = "no"
-        while err == "no":
-            if chc == "Y":
-                err = "yes"
-                return changecd(vm_name)
-            elif chc == "N":
-                breakprint("Will not change cdrom for %s" % vm_name)
-                err = "yes"
-                return 0
-            else:
-                chc = raw_input("invalid input, retry(Y/N):")
-                err = "no"
-    cmd = "change drive-scsi0-0-0-1 %s" % iso_path
+        if chc == "Y":
+            return retry_iso(cd, vm_name)
+        elif chc == "N":
+            breakprint("Will not change cdrom for %s" % vm_name)
+            return 0
+        else:
+            breakprint("invalid input, quiting.")
+            os.sys.exit(1)
+    cmd = "change %s %s" % (cd, iso_path)
     hmpcmd(cmd, vm_name)
 
 
@@ -347,7 +366,7 @@ def listvms():
 
 
 def breakprint(cmd):
-    breakline = "*"
+    breakline = "-" * 5 + '*' + '-' * 5
     print breakline
     print cmd
     print breakline
@@ -420,7 +439,7 @@ if __name__ == "__main__":
     elif args.lavms == 'true' and sys.argv[1:].remove("--list") != []:
         breakprint("Please do not use --list with other args.")
         os.sys.exit(1)
-    elif args.vm_name is None:
+    else args.vm_name is None:
         print "Please provide the vm name you want to use."
         parser.print_help()
         os.sys.exit(0)
@@ -438,6 +457,7 @@ if __name__ == "__main__":
         status, gcmdpath, vm_name = new_vm.VM_srp()
         cmdtext, vnc_port = readcmd(gcmdpath)
         tmpcmd = cmdtext + "-snapshot \\\n"
+        breakprint('Snapshot of %s is to run' % vm_name)
         breakprint(tmpcmd)
         status = os.system("%s &" % tmpcmd)
         if status:
@@ -448,36 +468,18 @@ if __name__ == "__main__":
             changecd(vm_name)
         breakprint("Connect the vnc with vnc port %s" % vnc_port)
         os.sys.exit(0)
-
-    if ifrun == "false" and vmcdrom == "true":
-        cmd = "ps -aux |grep %s" % vm_name
-        status, output = commands.getstatusoutput(cmd)
-        if status:
-            breakprint(output)
-            os.sys.exit(status)
-        if "-name %s" % vm_name not in output:
-            breakprint("VM %s is not running, will do nothing." % vm_name)
-            os.sys.exit(status)
-        breakprint(('WARN: Only insert iso to the running VM,'
-                    'other arguments won\'t work.\n'))
-        changecd(vm_name)
-        os.sys.exit(0)
-
-    new_vm = NewVM(vm_name, switch, m_size, c_nums, g_vnc)
-    status, gcmdpath, vm_name = new_vm.VM_srp()
-    if ifrun == "true":
+        
+    elif ifrun == "true" and snswitch == "false":
+        new_vm = NewVM(vm_name, switch, m_size, c_nums, g_vnc)
+        status, gcmdpath, vm_name = new_vm.VM_srp()
         if status == 1:
             vmfcmd, vnc_port = readcmd(gcmdpath)
-            breakprint(("the qemu script exist, -s and -p won't work."
+            breakprint(("the qemu script exist, other configuraton args won't work."
                         'the cmdline is  like this:'))
             breakprint(vmfcmd)
-            ch = raw_input("\n if direct run it?(Y/N)")
+            ch = raw_input("If direct to start it?(Y/N)")
             if ch == "Y":
-                runvm(gcmdpath)
-                if vmcdrom == "true":
-                    changecd(vm_name)
-                breakprint("Connect vnc port %s, if you like." % vnc_port)
-                os.sys.exit(0)
+                runvm(gcmdpath, vmcdrom, vm_name)
             elif ch == "N":
                 breakprint(('WARN: %s exist,'
                             'you can start the script by shell,'
@@ -490,18 +492,32 @@ if __name__ == "__main__":
             vmfcmd, vnc_port = readcmd(gcmdpath)
             breakprint("The cmdline is like this:")
             breakprint(vmfcmd)
-            runvm(gcmdpath)
-            if vmcdrom == "true":
-                changecd(vm_name)
-            breakprint("Connect vnc port %s, if you like" % vnc_port)
-            os.sys.exit(0)
+            runvm(gcmdpath, vmcdrom, vm_name)
         else:
             breakprint("got wrong code#%s, quit." % status)
             os.sys.exit(status)
+
+    elif ifrun == "false" and vmcdrom == "true":
+        cmd = "ps -aux |grep %s" % vm_name
+        status, output = commands.getstatusoutput(cmd)
+        if status:
+            breakprint(output)
+            os.sys.exit(status)
+        if "-name %s" % vm_name in output:
+            breakprint(('WARN: Only insert iso to the running VM,'
+                        'other arguments won\'t work.\n'))
+            changecd(vm_name)
+            os.sys.exit(0)
+        else:
+            breakprint("VM %s is not running, will do nothing." % vm_name)
+            os.sys.exit(status)
+
     elif ifrun == "false" and vmcdrom == "false":
+        new_vm = NewVM(vm_name, switch, m_size, c_nums, g_vnc)
+        status, gcmdpath, vm_name = new_vm.VM_srp()
         if status == 1:
             vmfcmd, vmc_port = readcmd(gcmdpath)
-            breakprint(('%s exists, and no script created,'
+            breakprint(('%s exists, and no script will be created,'
                         'please check if the script is the one you want,'
                         'you can start with --run or use shell to run it,'
                         'if you are to run with the shell script,'
@@ -519,3 +535,4 @@ if __name__ == "__main__":
             breakprint(vmfcmd)
         else:
             breakprint("got wrong code#%s, quit." % status)
+            
