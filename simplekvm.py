@@ -238,18 +238,19 @@ class NewVM(object):
                     '-no-user-config -nodefaults -rtc base=utc \\\n'
                     '-boot menu=on -usb -device usb-kbd,id=input0 \\\n'
                     '-device usb-mouse,id=input1 -vga std \\\n'
-                    '-device scsi-cd,bus=scsi0.0,channel=0,scsi-id=0,'
-                    'lun=0,drive=drive-scsi0-0-0-0,'
-                    'id=scsi0-0-0-0,bootindex=2 \\\n'
-                    '-device virtio-blk-pci,scsi=off,bus=pci.0,addr=0x6,'
-                    'drive=drive-virtio-disk0,id=virtio-disk0,bootindex=1 \\\n'
+                    '-device scsi-cd,bus=scsi0.0,channel=1,scsi-id=0,'
+                    'lun=1,drive=drive-scsi0-0-0-1,'
+                    'id=scsi0-0-0-1,bootindex=2 \\\n'
+                    '-device scsi-hd,bus=scsi0.0,channel=0,'
+                    'scsi-id=0,lun=0,drive=drive-scsi0-0-0-0,'
+                    'id=scsi0-0-0-0,bootindex=1 \\\n'
                     '-boot menu=on \\\n'
-                    '-drive if=none,id=drive-scsi0-0-0-0,readonly=on,'
+                    '-drive if=none,id=drive-scsi0-0-0-1,readonly=on,'
                     'format=raw \\\n')
         memarg = '-m %s \\\n' % self.m_size
         cpuarg = ('-smp %s,sockets=1,cores=%s,threads=1 '
                   '\\\n') % (self.c_nums, self.c_nums)
-        imgarg = ('-drive file=%s,if=none,id=drive-virtio-disk0,'
+        imgarg = ('-drive file=%s,if=none,id=drive-scsi0-0-0-0,'
                   'format=qcow2,cache=none \\\n') % vm_img
         vncarg = "-vnc :%s \\\n" % vport
         taparg = "-netdev tap,id=netdev,script=%s,vhost=on \\\n" % ifscript
