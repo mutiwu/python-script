@@ -284,7 +284,7 @@ def runvm(gcmdpath):
     shcmd = " sh %s & " % gcmdpath
     status = os.system(shcmd)
     if status:
-        breakprint("the vm is not started, please check your cmdline.\n")
+        breakprint("the vm is not started, please check your cmdline.")
         readcmd(gcmdpath)
         os.sys.exit(status)
 
@@ -314,7 +314,7 @@ def hmpcmd(hmpcli, vm_name):
     status, output = commands.getstatusoutput(cmd)
     if status:
         breakprint(output)
-        breakprint("failed to commands the qemu.\n")
+        breakprint("failed to commands the qemu.")
         os.sys.exit(status)
 
 
@@ -338,12 +338,12 @@ def listvms():
         breakprint(output)
         os.sys.exit(status)
     nm_pt_list = vmname_ptn.findall(output)
-    breakprint("The running vms and their corresponding vnc ports:\n")
-    breakprint("VM\tVNC port:\n")
+    breakprint("The running vms and their corresponding vnc ports:")
+    breakprint("VM\tVNC port:")
     for vm_name, port in nm_pt_list:
         vnc_p = int(port) + 5900
         print "%s\t%s" % (vm_name, vnc_p)
-        breakprint("Please connect with the right port")
+    breakprint("Please connect with the right port")
 
 
 def breakprint(cmd):
@@ -411,7 +411,7 @@ if __name__ == "__main__":
                         help='Start a vm in snapshot mode')
     parser.add_argument("--version",
                         action="version",
-                        version="%(prog)s 0.10")
+                        version="%(prog)s 0.11")
     args = parser.parse_args(sys.argv[1:])
 
     if ''.join(sys.argv[1:]) == '--list':
@@ -441,7 +441,7 @@ if __name__ == "__main__":
         breakprint(tmpcmd)
         status = os.system("%s &" % tmpcmd)
         if status:
-            breakprint("the vm is not started, please check your cmdline.\n")
+            breakprint("the vm is not started, please check your cmdline.")
             readcmd(gcmdpath)
             os.sys.exit(status)
         if vmcdrom == 'true':
@@ -469,7 +469,7 @@ if __name__ == "__main__":
         if status == 1:
             vmfcmd, vnc_port = readcmd(gcmdpath)
             breakprint(("the qemu script exist, -s and -p won't work."
-                        'the cmdline is  like this:\n'))
+                        'the cmdline is  like this:'))
             breakprint(vmfcmd)
             ch = raw_input("\n if direct run it?(Y/N)")
             if ch == "Y":
@@ -481,14 +481,14 @@ if __name__ == "__main__":
             elif ch == "N":
                 breakprint(('WARN: %s exist,'
                             'you can start the script by shell,'
-                            'and remove it if you like.\n') % gcmdpath)
+                            'and remove it if you like.') % gcmdpath)
                 os.sys.exit(0)
             else:
-                breakprint("wrong input, just quit.\n")
+                breakprint("wrong input, just quit.")
                 os.sys.exit(1)
         elif status == 0:
             vmfcmd, vnc_port = readcmd(gcmdpath)
-            breakprint("The cmdline is like this:\n")
+            breakprint("The cmdline is like this:")
             breakprint(vmfcmd)
             runvm(gcmdpath)
             if vmcdrom == "true":
@@ -496,7 +496,7 @@ if __name__ == "__main__":
             breakprint("Connect vnc port %s, if you like" % vnc_port)
             os.sys.exit(0)
         else:
-            breakprint("got wrong code#%s, quit.\n" % status)
+            breakprint("got wrong code#%s, quit." % status)
             os.sys.exit(status)
     elif ifrun == "false" and vmcdrom == "false":
         if status == 1:
@@ -506,7 +506,7 @@ if __name__ == "__main__":
                         'you can start with --run or use shell to run it,'
                         'if you are to run with the shell script,'
                         'use %s as the'
-                        'vnc port to connect.\n') % (gcmdpath, vmc_port))
+                        'vnc port to connect.') % (gcmdpath, vmc_port))
             breakprint(vmfcmd)
         elif status == 0:
             vmfcmd, vnc_port = readcmd(gcmdpath)
@@ -515,7 +515,7 @@ if __name__ == "__main__":
                         'or use shell to run it,'
                         'if you are to run with the shell script,'
                         'use %s as the vnc port to'
-                        'connect.\n') % (gcmdpath, vnc_port))
+                        'connect.') % (gcmdpath, vnc_port))
             breakprint(vmfcmd)
         else:
-            breakprint("got wrong code#%s, quit.\n" % status)
+            breakprint("got wrong code#%s, quit." % status)
