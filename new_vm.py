@@ -329,7 +329,10 @@ def breakprint(cmd):
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(prog='simplekvm')
+    parser.add_argument("--version",
+                        action="version",
+                        version="%(prog)s 0.6")
     parser.add_argument("-i",
                         action="store",
                         dest="vm_name",
