@@ -238,8 +238,8 @@ class NewVM(object):
                     '-no-user-config -nodefaults -rtc base=utc \\\n'
                     '-boot menu=on -usb -device usb-kbd,id=input0 \\\n'
                     '-device usb-mouse,id=input1 -vga std \\\n'
-                    '-device scsi-cd,bus=scsi0.0,channel=0,scsi-id=0,'
-                    'lun=1,drive=drive-scsi0-0-0-1,'
+                    '-device scsi-cd,bus=scsi0.0,channel=0,scsi-id=1,'
+                    'lun=0,drive=drive-scsi0-0-0-1,'
                     'id=scsi0-0-0-1,bootindex=2 \\\n'
                     '-device scsi-hd,bus=scsi0.0,channel=0,'
                     'scsi-id=0,lun=0,drive=drive-scsi0-0-0-0,'
@@ -305,7 +305,7 @@ def changecd(vm_name):
             else:
                 chc = raw_input("invalid input, retry(Y/N):")
                 err = "no"
-    cmd = "change drive-scsi0-0-0-0 %s" % iso_path
+    cmd = "change drive-scsi0-0-0-1 %s" % iso_path
     hmpcmd(cmd, vm_name)
 
 
