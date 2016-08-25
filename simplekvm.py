@@ -238,7 +238,7 @@ class NewVM(object):
                     '-no-user-config -nodefaults -rtc base=utc \\\n'
                     '-boot menu=on -usb -device usb-kbd,id=input0 \\\n'
                     '-device usb-mouse,id=input1 -vga std \\\n'
-                    '-device scsi-cd,bus=scsi0.0,channel=1,scsi-id=0,'
+                    '-device scsi-cd,bus=scsi0.0,channel=0,scsi-id=0,'
                     'lun=1,drive=drive-scsi0-0-0-1,'
                     'id=scsi0-0-0-1,bootindex=2 \\\n'
                     '-device scsi-hd,bus=scsi0.0,channel=0,'
