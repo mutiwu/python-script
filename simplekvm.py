@@ -330,6 +330,21 @@ def readcmd(gcmdpath):
     return cmdtext, vnc_p
 
 
+def listvms():
+    cmd = "ps aux |grep qemu"
+    vmname_ptn = re.compile(r"\-name (.*?) \-.*? \-vnc \:(\d+) ")
+    status, output = commands.getstatusoutput(cmd)
+    if status:
+        breakprint(output)
+        os.sys.exit(status)
+    nm_pt_list = vmname_ptn.findall(output)
+    breakprint("The running vms and their corresponding vnc ports:\n")
+    breakprint("VM\tVNC port:\n")
+    for vm_name, port in nm_pt_list:
+        print "%s\t%s" % (vm_name, port)
+        breakprint("Please connect with the right port")
+
+
 def breakprint(cmd):
     breakline = "*"
     print breakline
@@ -340,7 +355,8 @@ def breakprint(cmd):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(prog='simplekvm')
-    parser.add_argument("vm_name",
+    parser.add_argument("-i",
+                        dest="vm_name",
                         action="store",
                         metavar="VM NAME",
                         help="The vm name and the dst img name.",)
@@ -380,6 +396,12 @@ if __name__ == "__main__":
                         const="true",
                         default='false',
                         help="if insert a cdrom(an iso) to the vm.")
+    parser.add_argument("--list",
+                        action="store_const",
+                        dest="lavms",
+                        const='true',
+                        default='false',
+                        help="list the running vm infos")
     parser.add_argument("--snapshot",
                         action='store_const',
                         dest='snswitch',
@@ -391,7 +413,13 @@ if __name__ == "__main__":
                         version="%(prog)s 0.9")
     args = parser.parse_args(sys.argv[1:])
 
-    if args.vm_name is None:
+    if ''.join(sys.argv[1:]) == '--list':
+        listvms()
+        os.sys.exit(0)
+    elif args.lavms == 'true' and sys.argv[1:].remove("--list") != []:
+        breakprint("Please do not use --list with other args.")
+        os.sys.exit(1)
+    elif args.vm_name is None:
         print "Please provide the vm name you want to use."
         parser.print_help()
         os.sys.exit(0)
