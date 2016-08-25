@@ -388,7 +388,7 @@ if __name__ == "__main__":
                         help='Start a vm in snapshot mode')
     parser.add_argument("--version",
                         action="version",
-                        version="%(prog)s 0.8")
+                        version="%(prog)s 0.9")
     args = parser.parse_args(sys.argv[1:])
 
     if args.vm_name is None:
