@@ -270,48 +270,6 @@ class NewVM(object):
         return 0, gcmdpath, vm_name
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-i",
-                    action="store",
-                    dest="vm_name",
-                    metavar="VM NAME",
-                    help="The vm name and the dst img name.",)
-parser.add_argument("-p",
-                    action="store",
-                    dest="vnc_p",
-                    type=int,
-                    metavar="TCP PORT",
-                    help="If not assign a port, will assign random.")
-parser.add_argument("-s",
-                    action="store",
-                    dest="switch",
-                    default="switch",
-                    metavar="LINUX BRIDGE",
-                    help="specify the linux bridge you want to use.")
-parser.add_argument("--run",
-                    nargs='?',
-                    action="store",
-                    dest="vmrun",
-                    const='true',
-                    default='false',
-                    help="run the specified vm")
-parser.add_argument("--iso",
-                    nargs='?',
-                    action="store",
-                    dest="vmcdrom",
-                    const="true",
-                    default='false',
-                    help="if insert a cdrom(an iso) to the vm.")
-parser.add_argument("--snapshot",
-                    nargs='?',
-                    action='store',
-                    dest='snswitch',
-                    const='true',
-                    default='false',
-                    help='Start a vm in snapshot mode')
-args = parser.parse_args(sys.argv[1:])
-
-
 def runvm(gcmdpath):
     shcmd = " sh %s & " % gcmdpath
     status = os.system(shcmd)
@@ -369,102 +327,143 @@ def breakprint(cmd):
     print breakline
 
 
-if args.vm_name is None:
-    print "Please provide the vm name you want to use."
-    parser.print_help()
-    os.sys.exit(0)
+if __name__ == "__main__":
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i",
+                        action="store",
+                        dest="vm_name",
+                        metavar="VM NAME",
+                        help="The vm name and the dst img name.",)
+    parser.add_argument("-p",
+                        action="store",
+                        dest="vnc_p",
+                        type=int,
+                        metavar="TCP PORT",
+                        help="If not assign a port, will assign random.")
+    parser.add_argument("-s",
+                        action="store",
+                        dest="switch",
+                        default="switch",
+                        metavar="LINUX BRIDGE",
+                        help="specify the linux bridge you want to use.")
+    parser.add_argument("--run",
+                        nargs='?',
+                        action="store",
+                        dest="vmrun",
+                        const='true',
+                        default='false',
+                        help="run the specified vm")
+    parser.add_argument("--iso",
+                        nargs='?',
+                        action="store",
+                        dest="vmcdrom",
+                        const="true",
+                        default='false',
+                        help="if insert a cdrom(an iso) to the vm.")
+    parser.add_argument("--snapshot",
+                        nargs='?',
+                        action='store',
+                        dest='snswitch',
+                        const='true',
+                        default='false',
+                        help='Start a vm in snapshot mode')
+    args = parser.parse_args(sys.argv[1:])
 
-vm_name = args.vm_name
-g_vnc = args.vnc_p
-ifrun = args.vmrun
-switch = args.switch
-vmcdrom = args.vmcdrom
-snswitch = args.snswitch
-if ifrun == "true" and snswitch == "true":
+    if args.vm_name is None:
+        print "Please provide the vm name you want to use."
+        parser.print_help()
+        os.sys.exit(0)
+
+    vm_name = args.vm_name
+    g_vnc = args.vnc_p
+    ifrun = args.vmrun
+    switch = args.switch
+    vmcdrom = args.vmcdrom
+    snswitch = args.snswitch
+    if ifrun == "true" and snswitch == "true":
+        new_vm = NewVM(vm_name, switch, g_vnc)
+        status, gcmdpath, vm_name = new_vm.VM_srp()
+        cmdtext, vnc_port = readcmd(gcmdpath)
+        tmpcmd = cmdtext + " -snapshot"
+        breakprint(tmpcmd)
+        status = os.system("%s &" % tmpcmd)
+        if status:
+            breakprint("the vm is not started, please check your cmdline.\n")
+            readcmd(gcmdpath)
+            os.sys.exit(status)
+        if vmcdrom == 'true':
+            changecd(vm_name)
+        breakprint("Connect the vnc with vnc port %s" % vnc_port)
+        os.sys.exit(0)
+
+    if ifrun == "false" and vmcdrom == "true":
+        cmd = "ps -aux |grep %s" % vm_name
+        status, output = commands.getstatusoutput(cmd)
+        if status:
+            breakprint(output)
+            os.sys.exit(status)
+        if "-name %s" % vm_name not in output:
+            breakprint("VM %s is not running, will do nothing." % vm_name)
+            os.sys.exit(status)
+            breakprint(('WARN: Only insert iso to the running VM,'
+                        'no need specify -s, -p\n'))
+        changecd(vm_name)
+        os.sys.exit(0)
+
     new_vm = NewVM(vm_name, switch, g_vnc)
     status, gcmdpath, vm_name = new_vm.VM_srp()
-    cmdtext, vnc_port = readcmd(gcmdpath)
-    tmpcmd = cmdtext + " -snapshot"
-    breakprint(tmpcmd)
-    status = os.system("%s &" % tmpcmd)
-    if status:
-        breakprint("the vm is not started, please check your cmdline.\n")
-        readcmd(gcmdpath)
-        os.sys.exit(status)
-    if vmcdrom == 'true':
-        changecd(vm_name)
-    breakprint("Connect the vnc with vnc port %s" % vnc_port)
-    os.sys.exit(0)
-
-
-if ifrun == "false" and vmcdrom == "true":
-    cmd = "ps -aux |grep %s" % vm_name
-    status, output = commands.getstatusoutput(cmd)
-    if status:
-        breakprint(output)
-        os.sys.exit(status)
-    if "-name %s" % vm_name not in output:
-        breakprint("VM %s is not running, will do nothing." % vm_name)
-        os.sys.exit(status)
-    breakprint("WARN: Only insert iso to the running VM, \
-               no need specify -s, -p\n")
-    changecd(vm_name)
-    os.sys.exit(0)
-
-
-new_vm = NewVM(vm_name, switch, g_vnc)
-status, gcmdpath, vm_name = new_vm.VM_srp()
-if ifrun == "true":
-    if status == 1:
-        vmfcmd, vnc_port = readcmd(gcmdpath)
-        breakprint("the qemu script exist, -s and -p won't work. \
-                   the cmdline is  like this:\n")
-        breakprint(vmfcmd)
-        ch = raw_input("\n if direct run it?(Y/N)")
-        if ch == "Y":
+    if ifrun == "true":
+        if status == 1:
+            vmfcmd, vnc_port = readcmd(gcmdpath)
+            breakprint(("the qemu script exist, -s and -p won't work."
+                        'the cmdline is  like this:\n'))
+            breakprint(vmfcmd)
+            ch = raw_input("\n if direct run it?(Y/N)")
+            if ch == "Y":
+                runvm(gcmdpath)
+                if vmcdrom == "true":
+                    changecd(vm_name)
+                breakprint("Connect vnc port %s, if you like." % vnc_port)
+                os.sys.exit(0)
+            elif ch == "N":
+                breakprint(('WARN: %s exist,'
+                            'you can start the script by shell,'
+                            'and remove it if you like.\n') % gcmdpath)
+                os.sys.exit(0)
+            else:
+                breakprint("wrong input, just quit.\n")
+                os.sys.exit(1)
+        elif status == 0:
+            vmfcmd, vnc_port = readcmd(gcmdpath)
+            breakprint("The cmdline is like this:\n")
+            breakprint(vmfcmd)
             runvm(gcmdpath)
             if vmcdrom == "true":
                 changecd(vm_name)
-            breakprint("Connect vnc port %s, if you like." % vnc_port)
-            os.sys.exit(0)
-        elif ch == "N":
-            breakprint("WARN: %s exist, you can start the script by shell, \
-                       and remove it if you like.\n" % gcmdpath)
+            breakprint("Connect vnc port %s, if you like" % vnc_port)
             os.sys.exit(0)
         else:
-            breakprint("wrong input, just quit.\n")
-            os.sys.exit(1)
-    elif status == 0:
-        vmfcmd, vnc_port = readcmd(gcmdpath)
-        breakprint("The cmdline is like this:\n")
-        breakprint(vmfcmd)
-        runvm(gcmdpath)
-        if vmcdrom == "true":
-            changecd(vm_name)
-        breakprint("Connect vnc port %s, if you like" % vnc_port)
-        os.sys.exit(0)
-    else:
-        breakprint("got wrong code#%s, quit.\n" % status)
-        os.sys.exit(status)
-elif ifrun == "false" and vmcdrom == "false":
-    if status == 1:
-        vmfcmd, vmc_port = readcmd(gcmdpath)
-        breakprint(('%s exists, and no script created,'
-                    'please check if the script is the one you want,'
-                    'you can start with --run or use shell to run it,'
-                    'if you are to run with the shell script,'
-                    'use %s as the'
-                    'vnc port to connect.\n') % (gcmdpath, vmc_port))
-        breakprint(vmfcmd)
-    elif status == 0:
-        vmfcmd, vnc_port = readcmd(gcmdpath)
-        breakprint(('Your script %s is ready,'
-                    'you can start it next time with --run'
-                    'or use shell to run it,'
-                    'if you are to run with the shell script,'
-                    'use %s as the vnc port to'
-                    'connect.\n') % (gcmdpath, vnc_port))
-        breakprint(vmfcmd)
-    else:
-        breakprint("got wrong code#%s, quit.\n" % status)
+            breakprint("got wrong code#%s, quit.\n" % status)
+            os.sys.exit(status)
+    elif ifrun == "false" and vmcdrom == "false":
+        if status == 1:
+            vmfcmd, vmc_port = readcmd(gcmdpath)
+            breakprint(('%s exists, and no script created,'
+                        'please check if the script is the one you want,'
+                        'you can start with --run or use shell to run it,'
+                        'if you are to run with the shell script,'
+                        'use %s as the'
+                        'vnc port to connect.\n') % (gcmdpath, vmc_port))
+            breakprint(vmfcmd)
+        elif status == 0:
+            vmfcmd, vnc_port = readcmd(gcmdpath)
+            breakprint(('Your script %s is ready,'
+                        'you can start it next time with --run'
+                        'or use shell to run it,'
+                        'if you are to run with the shell script,'
+                        'use %s as the vnc port to'
+                        'connect.\n') % (gcmdpath, vnc_port))
+            breakprint(vmfcmd)
+        else:
+            breakprint("got wrong code#%s, quit.\n" % status)
