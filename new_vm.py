@@ -333,9 +333,8 @@ if __name__ == "__main__":
     parser.add_argument("--version",
                         action="version",
                         version="%(prog)s 0.6")
-    parser.add_argument("-i",
+    parser.add_argument("vm_name",
                         action="store",
-                        dest="vm_name",
                         metavar="VM NAME",
                         help="The vm name and the dst img name.",)
     parser.add_argument("-p",
