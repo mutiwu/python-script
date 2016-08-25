@@ -330,9 +330,6 @@ def breakprint(cmd):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(prog='simplekvm')
-    parser.add_argument("--version",
-                        action="version",
-                        version="%(prog)s 0.6")
     parser.add_argument("vm_name",
                         action="store",
                         metavar="VM NAME",
@@ -350,26 +347,26 @@ if __name__ == "__main__":
                         metavar="LINUX BRIDGE",
                         help="specify the linux bridge you want to use.")
     parser.add_argument("--run",
-                        nargs='?',
-                        action="store",
+                        action="store_const",
                         dest="vmrun",
                         const='true',
                         default='false',
                         help="run the specified vm")
     parser.add_argument("--iso",
-                        nargs='?',
-                        action="store",
+                        action="store_const",
                         dest="vmcdrom",
                         const="true",
                         default='false',
                         help="if insert a cdrom(an iso) to the vm.")
     parser.add_argument("--snapshot",
-                        nargs='?',
-                        action='store',
+                        action='store_const',
                         dest='snswitch',
                         const='true',
                         default='false',
                         help='Start a vm in snapshot mode')
+    parser.add_argument("--version",
+                        action="version",
+                        version="%(prog)s 0.7")
     args = parser.parse_args(sys.argv[1:])
 
     if args.vm_name is None:
@@ -408,8 +405,8 @@ if __name__ == "__main__":
         if "-name %s" % vm_name not in output:
             breakprint("VM %s is not running, will do nothing." % vm_name)
             os.sys.exit(status)
-            breakprint(('WARN: Only insert iso to the running VM,'
-                        'no need specify -s, -p\n'))
+        breakprint(('WARN: Only insert iso to the running VM,'
+                    'other arguments won\'t work.\n'))
         changecd(vm_name)
         os.sys.exit(0)
 
