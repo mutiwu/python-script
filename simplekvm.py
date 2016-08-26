@@ -279,16 +279,16 @@ class NewVM(object):
         return 0, gcmdpath, vm_name
 
 
-def runvm(gcmdpath, vmcdrom, vm_name):
+def runvm(gcmdpath, vmcdrom, vm_name, vnc_port):
     shcmd = " sh %s & " % gcmdpath
     status = os.system(shcmd)
     if status:
         breakprint("the vm is not started, please check your cmdline.")
         readcmd(gcmdpath)
         os.sys.exit(status)
+    breakprint("Connect vnc port %s, if you like" % vnc_port)
     if vmcdrom == "true":
         changecd(vm_name)
-    breakprint("Connect vnc port %s, if you like" % vnc_port)
     os.sys.exit(0)
 
 
@@ -307,25 +307,36 @@ def changecd(vm_name):
     except KeyError:
         breakprint('invalid input, please follow the menu prompts.')
         return changecd(vm_name)
-    return retry_iso(cd, vm_name)
-
-
-def retry_iso(cd, vm_name):
     if cd == '0':
-        return 0
+        os.sys.exit(0)
+    iso_path = retry_iso(vm_name)
+    ejectcmd = 'eject -f %s' % cd
+    hmpcmd(ejectcmd, vm_name)
+    cmd = 'change %s %s' % (cd, iso_path)
+    hmpcmd(cmd, vm_name)
+    ckcmd = "info block"
+    choutput = hmpcmd(ckcmd, vm_name)
+    ck_pn = re.compile(r"%s: (.*?) \(raw, read-only\)")
+    if ''.join(ck_pn.findall(choutput)) == iso_path:
+        breakprint("Insert %s succeed." % iso_path)
+        os.sys.exit(0)
+    breakprint("Insert %s failed." % iso_path)
+    os.sys.exit(1)
+
+
+def retry_iso(vm_name):
     iso_path = raw_input("please provide the path of the iso:\n")
     if not os.path.exists(iso_path):
         chc = raw_input("the iso %s does not exist,if retry?(Y/N))" % iso_path)
         if chc == "Y":
-            return retry_iso(cd, vm_name)
+            return retry_iso(vm_name)
         elif chc == "N":
             breakprint("Will not change cdrom for %s" % vm_name)
-            return 0
+            os.sys.exit(0)
         else:
             breakprint("invalid input, quiting.")
             os.sys.exit(1)
-    cmd = "change %s %s" % (cd, iso_path)
-    hmpcmd(cmd, vm_name)
+    return iso_path
 
 
 def hmpcmd(hmpcli, vm_name):
@@ -335,6 +346,7 @@ def hmpcmd(hmpcli, vm_name):
         breakprint(output)
         breakprint("failed to commands the qemu.")
         os.sys.exit(status)
+    return output
 
 
 def readcmd(gcmdpath):
@@ -480,7 +492,7 @@ if __name__ == "__main__":
             breakprint(vmfcmd)
             ch = raw_input("If direct to start it?(Y/N)")
             if ch == "Y":
-                runvm(gcmdpath, vmcdrom, vm_name)
+                runvm(gcmdpath, vmcdrom, vm_name, vnc_port)
             elif ch == "N":
                 breakprint(('WARN: %s exist,'
                             'you can start the script by shell,'
@@ -493,7 +505,7 @@ if __name__ == "__main__":
             vmfcmd, vnc_port = readcmd(gcmdpath)
             breakprint("The cmdline is like this:")
             breakprint(vmfcmd)
-            runvm(gcmdpath, vmcdrom, vm_name)
+            runvm(gcmdpath, vmcdrom, vm_name, vnc_port)
         else:
             breakprint("got wrong code#%s, quit." % status)
             os.sys.exit(status)
