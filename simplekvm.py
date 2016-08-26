@@ -507,7 +507,7 @@ if __name__ == "__main__":
     if ''.join(sys.argv[1:]) == '--remove':
         removevm()
     elif args.lavms == 'true' and sys.argv[1:].remove('--remove') != []:
-        breakprint('Please do not use --list with other args.')
+        breakprint('Please do not use --remove with other args.')
         os.sys.exit(1)
 
     if args.vm_name is None:
