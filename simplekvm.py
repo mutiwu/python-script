@@ -377,6 +377,52 @@ def listvms():
     breakprint("Please connect with the right port")
 
 
+def removevm():
+    vm_name = raw_input(("Please specify the vm name "
+                         "that you want to remove.\n"))
+    cmd = "ps aux |grep %s" % vm_name
+    status, output = commands.getstatusoutput(cmd)
+    if status:
+        breakprint(output)
+        os.sys.exit(status)
+    if "-name %s" % vm_name in output:
+        breakprint(('The vm is running, won\'t remove it.'))
+        os.sys.exit(0)
+    imgpath = '/var/vmimgs'
+    clipath = '/var/vmcli'
+    vmimg = '%s/%s.qcow2' % (imgpath, vm_name)
+    vmcli = '%s/%s.sh' % (clipath, vm_name)
+    if not os.path.exists(vmimg) and not os.path.exists(vmcli):
+        breakprint(('%s does not exist, will do nothing') % vm_name)
+        os.sys.exit(0)
+    elif not os.path.exists(vmimg) and os.path.exists(vmcli):
+        breakprint(('%s has not image found, '
+                    'will delete the script %s') % (vm_name, vmcli))
+        if_rm(vmcli)
+        os.sys.exit(0)
+    elif os.path.exists(vmimg) and not os.path.exists(vmcli):
+        breakprint(('%s has not script found, '
+                    'will delete the vm image %s.') % (vm_name, vmimg))
+        if_rm(vmimg)
+        os.sys.exit(0)
+    else:
+        if_rm(vmimg)
+        if_rm(vmcli)
+        os.sys.exit(0)
+
+
+def if_rm(filepath):
+    chc = raw_input(('Are you sure to delete the %s?'
+                     '(Y/N)\n') % filepath)
+    if chc == 'Y':
+        os.remove(filepath)
+    elif chc == 'N':
+        breakprint(('Do nothing, just quit.'))
+    else:
+        breakprint(('Invalid input, please Input Y/N.'))
+        return if_rm(filepath)
+
+
 def breakprint(cmd):
     breakline = ">" + "." * 29
     print breakline
@@ -434,6 +480,12 @@ if __name__ == "__main__":
                         const='true',
                         default='false',
                         help="list the running vm infos")
+    parser.add_argument('--remove',
+                        action="store_const",
+                        dest='ifrm',
+                        const='true',
+                        default='false',
+                        help="Remove the image and script of the vm.")
     parser.add_argument("--snapshot",
                         action='store_const',
                         dest='snswitch',
@@ -442,7 +494,7 @@ if __name__ == "__main__":
                         help='Start a vm in snapshot mode')
     parser.add_argument("--version",
                         action="version",
-                        version="%(prog)s 0.17")
+                        version="%(prog)s 0.18")
     args = parser.parse_args(sys.argv[1:])
 
     if ''.join(sys.argv[1:]) == '--list':
@@ -451,6 +503,13 @@ if __name__ == "__main__":
     elif args.lavms == 'true' and sys.argv[1:].remove("--list") != []:
         breakprint("Please do not use --list with other args.")
         os.sys.exit(1)
+
+    if ''.join(sys.argv[1:]) == '--remove':
+        removevm()
+    elif args.lavms == 'true' and sys.argv[1:].remove('--remove') != []:
+        breakprint('Please do not use --list with other args.')
+        os.sys.exit(1)
+
     if args.vm_name is None:
         print "Please provide the vm name you want to use."
         parser.print_help()
@@ -464,6 +523,7 @@ if __name__ == "__main__":
     switch = args.switch
     vmcdrom = args.vmcdrom
     snswitch = args.snswitch
+
     if ifrun == "true" and snswitch == "true":
         new_vm = NewVM(vm_name, switch, m_size, c_nums, g_vnc)
         status, gcmdpath, vm_name = new_vm.VM_srp()
