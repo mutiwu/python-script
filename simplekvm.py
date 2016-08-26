@@ -132,12 +132,11 @@ class NewVM(object):
         os.sys.exit(0)
 
     def gen_vncp(self):
-        new_p = random.randint(0, 59635)
-        vnc_pt = new_p + 5900
-        res = self.__chk_vncp(new_p)
+        new_p = random.randint(5900, 65535)
+        res, res1 = self.__chk_vncp(new_p)
         if res == 303:
-            self.bp("The new vnc port is %s" % vnc_pt)
-            return new_p
+            self.bp("The new vnc port is %s" % new_p)
+            return res1
         elif res == 301:
             return self.gen_vncp()
         else:
@@ -148,9 +147,9 @@ class NewVM(object):
     def vnc_port(self, vnc_p):
         if vnc_p is None:
             return self.gen_vncp()
-        f_re = self.__chk_vncp(vnc_p)
+        f_re, res1 = self.__chk_vncp(vnc_p)
         if f_re == 303:
-            return vnc_p
+            return res1
         elif f_re == 301:
             return self.input_p()
         else:
@@ -160,32 +159,36 @@ class NewVM(object):
     def input_p(self):
         new_p = raw_input("input a new port, or left to randomly specify:\n")
         try:
-            int_p = int(new_p) - 5900
+            int_p = int(new_p)
             return self.vnc_port(int_p)
         except ValueError:
-            return self.vnc_port(new_p)
+            if new_p == '':
+                return self.gen_vncp()
+            else:
+                return self.vnc_port(new_p)
 
-    def __chk_vncp(self, vnc_p):
-        if type(vnc_p) != int:
+    def __chk_vncp(self, old_p):
+        if type(old_p) != int:
             self.bp("Invalid type, port id should be in int type.")
-            return 301
+            return 301, 3001
+        vnc_p = old_p - 5900
         if vnc_p <= 0:
             self.bp(('The vnc port must be 5900 ~ 65535'))
-            return 301
+            return 301, 3002
         elif vnc_p >= 59635:
             self.bp(('The vnc port must be 5900 ~ 65535'))
-            return 301
+            return 301, 3003
         else:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             try:
-                rt_value = s.connect_ex(('127.0.0.1', vnc_p))
+                rt_value = s.connect_ex(('127.0.0.1', old_p))
                 if rt_value == 0:
-                    self.bp("%s is in use of this host" % vnc_p)
-                    return 301
-                return 303
+                    self.bp("%s is in use of this host" % old_p)
+                    return 301, 3003
+                return 303, vnc_p
             except OverflowError:
                 self.bp("The tcp port must be 0-65535")
-                return 301
+                return 301, 3004
 
     def create_switch(self, switch):
         ifsrppath = "/etc/qemu-%s-ifup" % switch
@@ -497,7 +500,7 @@ if __name__ == "__main__":
                         help='Start a vm in snapshot mode')
     parser.add_argument("--version",
                         action="version",
-                        version="%(prog)s 0.21")
+                        version="%(prog)s 0.25")
     args = parser.parse_args(sys.argv[1:])
 
     if ''.join(sys.argv[1:]) == '--list':
@@ -522,7 +525,7 @@ if __name__ == "__main__":
     m_size = args.m_size
     c_nums = args.c_nums
     o_vnc = args.vnc_p
-    g_vnc = o_vnc - 5900
+    g_vnc = o_vnc
     ifrun = args.vmrun
     switch = args.switch
     vmcdrom = args.vmcdrom
