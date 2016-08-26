@@ -316,8 +316,8 @@ def changecd(vm_name):
     hmpcmd(cmd, vm_name)
     ckcmd = "info block"
     choutput = hmpcmd(ckcmd, vm_name)
-    ck_pn = re.compile(r"%s: (.*?) \(raw, read-only\)")
-    if ''.join(ck_pn.findall(choutput)) == iso_path:
+    ck_pn = re.compile(r"%s: (.*?) \(raw, read-only\)" % cd)
+    if ck_pn.findall(choutput)[0] == iso_path:
         breakprint("Insert %s succeed." % iso_path)
         os.sys.exit(0)
     breakprint("Insert %s failed." % iso_path)
@@ -442,7 +442,7 @@ if __name__ == "__main__":
                         help='Start a vm in snapshot mode')
     parser.add_argument("--version",
                         action="version",
-                        version="%(prog)s 0.15")
+                        version="%(prog)s 0.16")
     args = parser.parse_args(sys.argv[1:])
 
     if ''.join(sys.argv[1:]) == '--list':
