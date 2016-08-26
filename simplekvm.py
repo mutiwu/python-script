@@ -95,12 +95,12 @@ class NewVM(object):
             os.sys.exit(1)
         if "file=%s" % vmimg in output:
             self.bp(("The image %s is used by another activate guest,"
-                    "please check") % vmimg)
+                     "please check") % vmimg)
             os.sys.exit(3)
 
     def chc_n(self, vmimg):
-        vm_name = raw_input(("Won't use the %s as the bootdisk, so "
-                            "please specify a new vm name:\n") % vmimg)
+        vm_name = raw_input(("Won't use the %s as the bootdisk,"
+                             "so please specify a new vm name:\n") % vmimg)
         return self.img_handle(vm_name)
 
     def img_cp(self, vmimg):
@@ -118,7 +118,7 @@ class NewVM(object):
 
     def cre_img(self, vmimg):
         imgsize = raw_input(("Please input the size you want to use,"
-                            "e.g. 50G, 100M, ...\n"))
+                             "e.g. 50G, 100M, ...\n"))
         cmd = "qemu-img create -f qcow2 %s %s" % (vmimg, imgsize)
         status, output = commands.getstatusoutput(cmd)
         if status:
@@ -402,7 +402,7 @@ def removevm():
         breakprint(('%s does not exist, will do nothing') % vm_name)
         os.sys.exit(0)
     elif not os.path.exists(vmimg) and os.path.exists(vmcli):
-        breakprint(('%s has not image found, '
+        breakprint(('%s has not image found,'
                     'will delete the script %s') % (vm_name, vmcli))
         if_rm(vmcli)
         os.sys.exit(0)
@@ -601,13 +601,13 @@ if __name__ == "__main__":
                         'please check if the script is the one you want,'
                         'you can start with --run or use shell to run it,'
                         'if you are to run with the shell script,'
-                        'use %s as the'
+                        'use %s as the '
                         'vnc port to connect.') % (gcmdpath, vmc_port))
             breakprint(vmfcmd)
         elif status == 0:
             vmfcmd, vnc_port = readcmd(gcmdpath)
             breakprint(('Your script %s is ready,'
-                        'you can start it next time with --run'
+                        'you can start it next time with --run '
                         'or use shell to run it,'
                         'if you are to run with the shell script,'
                         'use %s as the vnc port to '
