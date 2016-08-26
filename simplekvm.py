@@ -19,7 +19,7 @@ class NewVM(object):
         self.switch = switch
 
     def bp(self, str):
-        breakline = "-" * 5 + "*" + "-" * 5
+        breakline = '>' + "." * 29
         print breakline
         print str
         print breakline
@@ -369,16 +369,16 @@ def listvms():
         breakprint(output)
         os.sys.exit(status)
     nm_pt_list = vmname_ptn.findall(output)
-    breakprint("The running vms and their corresponding vnc ports:")
-    breakprint("VM\tVNC port:")
+    breakprint(("The running vms and their corresponding vnc ports:\n\n"
+                'VM\t\tVNC port:'))
     for vm_name, port in nm_pt_list:
         vnc_p = int(port) + 5900
-        print "%s\t%s" % (vm_name, vnc_p)
+        print "%s\t\t%s" % (vm_name, vnc_p)
     breakprint("Please connect with the right port")
 
 
 def breakprint(cmd):
-    breakline = "-" * 5 + '*' + '-' * 5
+    breakline = ">" + "." * 29
     print breakline
     print cmd
     print breakline
@@ -442,7 +442,7 @@ if __name__ == "__main__":
                         help='Start a vm in snapshot mode')
     parser.add_argument("--version",
                         action="version",
-                        version="%(prog)s 0.16")
+                        version="%(prog)s 0.17")
     args = parser.parse_args(sys.argv[1:])
 
     if ''.join(sys.argv[1:]) == '--list':
@@ -543,7 +543,7 @@ if __name__ == "__main__":
                         'you can start it next time with --run'
                         'or use shell to run it,'
                         'if you are to run with the shell script,'
-                        'use %s as the vnc port to'
+                        'use %s as the vnc port to '
                         'connect.') % (gcmdpath, vnc_port))
             breakprint(vmfcmd)
         else:
