@@ -160,29 +160,32 @@ class NewVM(object):
     def input_p(self):
         new_p = raw_input("input a new port, or left to randomly specify:\n")
         try:
-            int_p = int(new_p)
+            int_p = int(new_p) - 5900
             return self.vnc_port(int_p)
         except ValueError:
             return self.vnc_port(new_p)
 
-    def __chk_vncp(self, old_p):
-        if type(old_p) != int:
+    def __chk_vncp(self, vnc_p):
+        if type(vnc_p) != int:
             self.bp("Invalid type, port id should be in int type.")
             return 301
-        vnc_p = old_p + 5900
-        if vnc_p < 5900:
-            self.bp("The vnc port must be 0 ~ 59635")
+        if vnc_p <= 0:
+            self.bp(('The vnc port must be 5900 ~ 65535'))
             return 301
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        try:
-            rt_value = s.connect_ex(('127.0.0.1', vnc_p))
-            if rt_value == 0:
-                self.bp("%s is in use of this host" % vnc_p)
+        elif vnc_p >= 59635:
+            self.bp(('The vnc port must be 5900 ~ 65535'))
+            return 301
+        else:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            try:
+                rt_value = s.connect_ex(('127.0.0.1', vnc_p))
+                if rt_value == 0:
+                    self.bp("%s is in use of this host" % vnc_p)
+                    return 301
+                return 303
+            except OverflowError:
+                self.bp("The tcp port must be 0-65535")
                 return 301
-            return 303
-        except OverflowError:
-            self.bp("The tcp port must be 0-65535")
-            return 301
 
     def create_switch(self, switch):
         ifsrppath = "/etc/qemu-%s-ifup" % switch
@@ -328,9 +331,9 @@ def retry_iso(vm_name):
     iso_path = raw_input("please provide the path of the iso:\n")
     if not os.path.exists(iso_path):
         chc = raw_input("the iso %s does not exist,if retry?(Y/N))" % iso_path)
-        if chc == "Y":
+        if chc == "Y" or chc == "y":
             return retry_iso(vm_name)
-        elif chc == "N":
+        elif chc == "N" or chc == "n":
             breakprint("Will not change cdrom for %s" % vm_name)
             os.sys.exit(0)
         else:
@@ -414,9 +417,9 @@ def removevm():
 def if_rm(filepath):
     chc = raw_input(('Are you sure to delete the %s?'
                      '(Y/N)\n') % filepath)
-    if chc == 'Y':
+    if chc == 'Y' or chc == 'y':
         os.remove(filepath)
-    elif chc == 'N':
+    elif chc == 'N' or chc == 'n':
         breakprint(('Do nothing, just quit.'))
     else:
         breakprint(('Invalid input, please Input Y/N.'))
@@ -518,7 +521,8 @@ if __name__ == "__main__":
     vm_name = args.vm_name
     m_size = args.m_size
     c_nums = args.c_nums
-    g_vnc = args.vnc_p
+    o_vnc = args.vnc_p
+    g_vnc = o_vnc - 5900
     ifrun = args.vmrun
     switch = args.switch
     vmcdrom = args.vmcdrom
@@ -551,9 +555,9 @@ if __name__ == "__main__":
                         'the cmdline is  like this:'))
             breakprint(vmfcmd)
             ch = raw_input("If direct to start it?(Y/N)")
-            if ch == "Y":
+            if ch == "Y" or ch == 'y':
                 runvm(gcmdpath, vmcdrom, vm_name, vnc_port)
-            elif ch == "N":
+            elif ch == "N" or ch == 'n':
                 breakprint(('WARN: %s exist,'
                             'you can start the script by shell,'
                             'and remove it if you like.') % gcmdpath)
