@@ -64,7 +64,7 @@ class NewVM(object):
             newimg = self.chc_c(cic, chc, vmimg)
             return newimg, vm_name
         else:
-            self.bp("%s does not exist, please choose:\n" % vmimg)
+            self.bp("%s does not exist, please choose:" % vmimg)
             newimg = self.chmenu(vmimg)
             return newimg, vm_name
 
@@ -73,7 +73,7 @@ class NewVM(object):
             cic[chc](vmimg)
             return vmimg
         except KeyError:
-            self.bp("invalid input, quit.\n")
+            self.bp("invalid input, quit.")
             os.sys.exit(1)
 
     def chmenu(self, vmimg):
@@ -106,13 +106,13 @@ class NewVM(object):
     def img_cp(self, vmimg):
         srcimg = raw_input("Please specify the base image:\n")
         if not os.path.exists(srcimg):
-            self.bp("%s does not exist. back to menu:\n" % srcimg)
+            self.bp("%s does not exist. back to menu:" % srcimg)
             return self.chmenu(vmimg)
         else:
             cmd = "cp %s %s" % (srcimg, vmimg)
             status, output = commands.getstatusoutput(cmd)
             if status:
-                self.bp("cp hit error\n")
+                self.bp("cp hit error")
                 self.bp(output)
                 os.sys.exit(status)
 
@@ -128,7 +128,7 @@ class NewVM(object):
         self.bp(output)
 
     def quit(self, vmimg):
-        self.bp("Will not create %s, just quit.\n" % vmimg)
+        self.bp("Will not create %s, just quit." % vmimg)
         os.sys.exit(0)
 
     def gen_vncp(self):
@@ -154,7 +154,7 @@ class NewVM(object):
         elif f_re == 301:
             return self.input_p()
         else:
-            self.bp("Invalid code#%s, exit.\n" % f_re)
+            self.bp("Invalid code#%s, exit." % f_re)
             os.sys.exit(f_re)
 
     def input_p(self):
@@ -430,7 +430,7 @@ if __name__ == "__main__":
                         help='Start a vm in snapshot mode')
     parser.add_argument("--version",
                         action="version",
-                        version="%(prog)s 0.12")
+                        version="%(prog)s 0.15")
     args = parser.parse_args(sys.argv[1:])
 
     if ''.join(sys.argv[1:]) == '--list':
@@ -506,7 +506,7 @@ if __name__ == "__main__":
             os.sys.exit(status)
         if "-name %s" % vm_name in output:
             breakprint(('WARN: Only insert iso to the running VM,'
-                        'other arguments won\'t work.\n'))
+                        'other arguments won\'t work.'))
             changecd(vm_name)
             os.sys.exit(0)
         else:
