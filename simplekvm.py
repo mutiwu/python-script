@@ -105,8 +105,8 @@ class NewVM(object):
 
     def img_cp(self, vmimg):
         self.bp('Please choose what images you need to copy.')
-        choice = raw_input('1.\tCopy from current vms.\n'
-                           '2.\tcopy from other images.\n>')
+        choice = raw_input('1: Copy from current vms.\n'
+                           '2: copy from other images.\n>')
         if choice == '1':
             srcvm = raw_input('Please specify the src vm name.\n>')
             srcimg = '%s/%s.qcow2' % (self.imgpath, srcvm)
