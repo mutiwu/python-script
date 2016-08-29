@@ -395,15 +395,16 @@ def listvms():
         os.sys.exit(status)
     nm_pt_list = vmname_ptn.findall(output)
     breakprint(("The running vms and their corresponding vnc ports:\n\n"
-                '\tVM\t\tVNC port:'))
+                '\tVM Names\t\tVNC ports:'))
     for vm_name, port in nm_pt_list:
         vnc_p = int(port) + 5900
-        print "\t%s\t\t%s" % (vm_name, vnc_p)
+        print ">\t%s\t\t%s" % (vm_name, vnc_p)
     breakprint("Please connect with the right port")
     imgslist = os.listdir(impath)
     all_names = [img_ptn.findall(img)[0] for img in imgslist]
-    all_imgs = '\n'.join(all_names)
-    breakprint('All the vms that have imgs list below.\n%s' % all_imgs)
+    all_imgs = '\n>\t'.join(all_names)
+    print('All the vms that have imgs list below:\n\n\tVM Names')
+    breakprint('>\t%s' % all_imgs)
 
 
 def removevm():
