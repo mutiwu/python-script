@@ -369,6 +369,8 @@ def readcmd(gcmdpath):
 
 def listvms():
     cmd = "ps aux |grep qemu"
+    impath = '/var/vmimgs'
+    img_ptn = re.compile(r"(.*?).qcow2")
     vmname_ptn = re.compile(r"\-name (.*?) \-.*? \-vnc \:(\d+) ")
     status, output = commands.getstatusoutput(cmd)
     if status:
@@ -381,6 +383,10 @@ def listvms():
         vnc_p = int(port) + 5900
         print "\t%s\t\t%s" % (vm_name, vnc_p)
     breakprint("Please connect with the right port")
+    imgslist = os.listdir(impath)
+    all_names = [img_ptn.findall(img)[0] for img in imgslist]
+    all_imgs = '\n'.join(all_names)
+    breakprint('All the vms that have imgs list below.\n%s' % all_imgs)
 
 
 def removevm():
