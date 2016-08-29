@@ -12,6 +12,7 @@ import re
 
 class NewVM(object):
     def __init__(self, vm_name, switch, m_size, c_nums, g_vnc):
+        self.imgpath = '/var/vmimgs'
         self.vm_name = vm_name
         self.m_size = m_size
         self.c_nums = c_nums
@@ -51,16 +52,15 @@ class NewVM(object):
         return randmac
 
     def img_handle(self, vm_name):
-        imgpath = "/var/vmimgs"
-        vmimg = "%s/%s.qcow2" % (imgpath, vm_name)
-        if not os.path.exists(imgpath):
-            os.mkdir(imgpath)
+        vmimg = "%s/%s.qcow2" % (self.imgpath, vm_name)
+        if not os.path.exists(self.imgpath):
+            os.mkdir(self.imgpath)
         if os.path.exists(vmimg):
             cic = {
                     "Y": self.chc_y,
                     "N": self.chc_n,
                 }
-            chc = raw_input("%s exist, if use this VM image.(Y/N)" % vmimg)
+            chc = raw_input("%s exist, if use this VM image.(Y/N)\n>" % vmimg)
             newimg = self.chc_c(cic, chc, vmimg)
             return newimg, vm_name
         else:
@@ -79,7 +79,7 @@ class NewVM(object):
     def chmenu(self, vmimg):
         chc = raw_input(('1:  Copy from an exist IMG\n'
                          '2:  create a new IMG\n'
-                         'q:  quit\n'))
+                         'q:  quit\n>'))
         cic = {
             "1": self.img_cp,
             "2": self.cre_img,
@@ -100,11 +100,24 @@ class NewVM(object):
 
     def chc_n(self, vmimg):
         vm_name = raw_input(("Won't use the %s as the bootdisk,"
-                             "so please specify a new vm name:\n") % vmimg)
+                             "so please specify a new vm name:\n>") % vmimg)
         return self.img_handle(vm_name)
 
     def img_cp(self, vmimg):
-        srcimg = raw_input("Please specify the base image:\n")
+        self.bp('Please choose what images you need to copy.')
+        choice = raw_input('1.\tCopy from current vms.\n'
+                           '2.\tcopy from other images.\n>')
+        if choice == '1':
+            srcvm = raw_input('Please specify the src vm name.\n>')
+            srcimg = '%s/%s.qcow2' % (self.imgpath, srcvm)
+        elif choice == '2':
+            srcimg = raw_input("Please specify the base image:\n>")
+        else:
+            self.bp('Invalid input, please follow the menu.')
+            return self.img_cp(vmimg)
+        return self.cp_chk(srcimg, vmimg)
+
+    def cp_chk(self, srcimg, vmimg):
         if not os.path.exists(srcimg):
             self.bp("%s does not exist. back to menu:" % srcimg)
             return self.chmenu(vmimg)
@@ -118,7 +131,7 @@ class NewVM(object):
 
     def cre_img(self, vmimg):
         imgsize = raw_input(("Please input the size you want to use,"
-                             "e.g. 50G, 100M, ...\n"))
+                             "e.g. 50G, 100M, ...\n>"))
         cmd = "qemu-img create -f qcow2 %s %s" % (vmimg, imgsize)
         status, output = commands.getstatusoutput(cmd)
         if status:
@@ -157,7 +170,7 @@ class NewVM(object):
             os.sys.exit(f_re)
 
     def input_p(self):
-        new_p = raw_input("input a new port, or left to randomly specify:\n")
+        new_p = raw_input("input a new port, or left to randomly specify:\n>")
         try:
             int_p = int(new_p)
             return self.vnc_port(int_p)
@@ -307,7 +320,7 @@ def changecd(vm_name):
     cd_id = raw_input(('Please input which cdrom to use:\n'
                        '1: CDROM1\n'
                        '2: CDROM2\n'
-                       'q: Will not change cdrom for %s\n') % vm_name)
+                       'q: Will not change cdrom for %s\n>') % vm_name)
     try:
         cd = cd_dir[cd_id]
     except KeyError:
@@ -331,9 +344,10 @@ def changecd(vm_name):
 
 
 def retry_iso(vm_name):
-    iso_path = raw_input("please provide the path of the iso:\n")
+    iso_path = raw_input("please provide the path of the iso:\n>")
     if not os.path.exists(iso_path):
-        chc = raw_input("the iso %s does not exist,if retry?(Y/N))" % iso_path)
+        chc = raw_input(('the iso %s does not exist,'
+                         'if retry?(Y/N)\n>') % iso_path)
         if chc == "Y" or chc == "y":
             return retry_iso(vm_name)
         elif chc == "N" or chc == "n":
@@ -391,7 +405,7 @@ def listvms():
 
 def removevm():
     vm_name = raw_input(("Please specify the vm name "
-                         "that you want to remove.\n"))
+                         "that you want to remove.\n>"))
     cmd = "ps aux |grep %s" % vm_name
     status, output = commands.getstatusoutput(cmd)
     if status:
@@ -425,7 +439,7 @@ def removevm():
 
 def if_rm(filepath):
     chc = raw_input(('Are you sure to delete the %s?'
-                     '(Y/N)\n') % filepath)
+                     '(Y/N)\n>') % filepath)
     if chc == 'Y' or chc == 'y':
         os.remove(filepath)
     elif chc == 'N' or chc == 'n':
@@ -506,7 +520,7 @@ if __name__ == "__main__":
                         help='Start a vm in snapshot mode')
     parser.add_argument("--version",
                         action="version",
-                        version="%(prog)s 0.25")
+                        version="%(prog)s 0.26")
     args = parser.parse_args(sys.argv[1:])
 
     if ''.join(sys.argv[1:]) == '--list':
@@ -563,7 +577,7 @@ if __name__ == "__main__":
                         'other configuraton args won\'t work.'
                         'the cmdline is  like this:'))
             breakprint(vmfcmd)
-            ch = raw_input("If direct to start it?(Y/N)")
+            ch = raw_input("If direct to start it?(Y/N)\n>")
             if ch == "Y" or ch == 'y':
                 runvm(gcmdpath, vmcdrom, vm_name, vnc_port)
             elif ch == "N" or ch == 'n':
