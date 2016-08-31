@@ -58,7 +58,9 @@ class NewVM(object):
         if os.path.exists(vmimg):
             cic = {
                     "Y": self.chc_y,
+                    "y": self.chc_y,
                     "N": self.chc_n,
+                    "n": self.chc_n,
                 }
             chc = raw_input("%s exist, if use this VM image.(Y/N)\n>" % vmimg)
             newimg = self.chc_c(cic, chc, vmimg)
