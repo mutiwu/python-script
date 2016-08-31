@@ -33,7 +33,7 @@ class NewVM(object):
             self.bp("Can not check the platform.\nquit")
             os.sys.exit(status)
         if output == "ppc64le" or output == "ppcle64":
-            return ('-machine pserise-rhel7.2.0,accel=kvm,usb=off'
+            return ('-machine pseries-rhel7.2.0,accel=kvm,usb=off \\\n'
                     '-device spapr-vscsi,id=scsi0,reg=0x2000 \\\n')
         elif output == "x86_64":
             return ('-machine pc-i440fx-rhel7.0.0,accel=kvm,usb=off \\\n'
@@ -387,6 +387,9 @@ def readcmd(gcmdpath):
 def listvms():
     cmd = "ps aux |grep qemu"
     impath = '/var/vmimgs'
+    if not os.path.exists(impath):
+        breakprint("No images found, please try to define a new vm.")
+        os.sys.exit(1)
     img_ptn = re.compile(r"(.*?).qcow2")
     vmname_ptn = re.compile(r"\-name (.*?) \-.*? \-vnc \:(\d+) ")
     status, output = commands.getstatusoutput(cmd)
@@ -524,7 +527,7 @@ if __name__ == "__main__":
                         help='Start a vm in snapshot mode')
     parser.add_argument("--version",
                         action="version",
-                        version="%(prog)s 0.27")
+                        version="%(prog)s 0.28")
     args = parser.parse_args(sys.argv[1:])
 
     if ''.join(sys.argv[1:]) == '--list':
