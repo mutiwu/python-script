@@ -11,8 +11,16 @@ import re
 
 
 class NewVM(object):
-    def __init__(self, vm_name, switch, m_size, c_nums, g_vnc):
-        self.imgpath = '/var/vmimgs'
+    def __init__(self,
+                 vm_name,
+                 switch,
+                 m_size,
+                 c_nums,
+                 imgpath,
+                 cmdpath,
+                 g_vnc):
+        self.imgpath = imgpath
+        self.cmdpath = cmdpath
         self.vm_name = vm_name
         self.m_size = m_size
         self.c_nums = c_nums
@@ -90,14 +98,17 @@ class NewVM(object):
         return self.chc_c(cic, chc, vmimg)
 
     def chc_y(self, vmimg):
-        cmd = "ps aux |grep %s" % vmimg
+        cmd = (''' ps -ef |grep %s/%s.qcow2 '''
+               '''|grep -v 'grep'|awk '{print $2}' '''
+               % (self.imgpath, vm_name))
         status, output = commands.getstatusoutput(cmd)
         if status:
             self.bp(output)
             os.sys.exit(1)
-        if "file=%s" % vmimg in output:
-            self.bp(("The image %s is used by another activate guest,"
-                     "please check") % vmimg)
+        if output:
+            self.bp(("The image %s is used by another running guest,"
+                     "please check, and "
+                     "the pid of the running vm is %s ") % (vmimg, output))
             os.sys.exit(3)
 
     def chc_n(self, vmimg):
@@ -240,10 +251,9 @@ class NewVM(object):
 
     def VM_srp(self):
         vm_img, vm_name = self.img_handle(self.vm_name)
-        cmdpath = "/var/vmcli"
-        gcmdpath = "%s/%s.sh" % (cmdpath, vm_name)
-        if not os.path.exists(cmdpath):
-            os.mkdir(cmdpath)
+        gcmdpath = "%s/%s.sh" % (self.cmdpath, vm_name)
+        if not os.path.exists(self.cmdpath):
+            os.mkdir(self.cmdpath)
         if os.path.exists(gcmdpath):
             return 1, gcmdpath, vm_name
         vnarg = "-name %s \\\n" % vm_name
@@ -279,8 +289,8 @@ class NewVM(object):
         taparg = "-netdev tap,id=netdev,script=%s,vhost=on \\\n" % ifscript
         vnicarg = ('-device virtio-net-pci,netdev=netdev,id=net1,'
                    'mac=%s,bus=pci.0,addr=0x5 \\\n') % mac_addr
-        qmparg = "-qmp unix:/tmp/%sqmpsocket.sock,server,nowait \\\n" % vm_name
-        hmparg = ('-monitor unix:/tmp/%shmpsocket.sock,server,nowait '
+        qmparg = "-qmp unix:/tmp/qmp%ssocket.sock,server,nowait \\\n" % vm_name
+        hmparg = ('-monitor unix:/tmp/hmp%ssocket.sock,server,nowait '
                   '\\\n') % vm_name
         vm_clilist = [
             vm_qemu,
@@ -365,7 +375,7 @@ def retry_iso(vm_name):
 
 
 def hmpcmd(hmpcli, vm_name):
-    cmd = '''echo "%s"|nc -U /tmp/%shmpsocket.sock''' % (hmpcli, vm_name)
+    cmd = '''echo "%s"|nc -U /tmp/hmp%ssocket.sock''' % (hmpcli, vm_name)
     status, output = commands.getstatusoutput(cmd)
     if status:
         breakprint(output)
@@ -386,10 +396,9 @@ def readcmd(gcmdpath):
     return cmdtext, vnc_p
 
 
-def listvms():
+def listvms(imgpath):
     cmd = "ps aux |grep qemu"
-    impath = '/var/vmimgs'
-    if not os.path.exists(impath):
+    if not os.path.exists(imgpath):
         breakprint("No images found, please try to define a new vm.")
         os.sys.exit(1)
     img_ptn = re.compile(r"(.*?).qcow2")
@@ -405,28 +414,33 @@ def listvms():
         vnc_p = int(port) + 5900
         print ">\t%s\t\t%s" % (vm_name, vnc_p)
     breakprint("Please connect with the right port")
-    imgslist = os.listdir(impath)
+    imgslist = os.listdir(imgpath)
     all_names = [img_ptn.findall(img)[0] for img in imgslist]
     all_imgs = '\n>\t'.join(all_names)
     print('All the vms that have imgs list below:\n\n\tVM Names')
     breakprint('>\t%s' % all_imgs)
 
 
-def removevm():
+def removevm(imgpath, cmdpath):
     vm_name = raw_input(("Please specify the vm name "
                          "that you want to remove.\n>"))
-    cmd = "ps aux |grep %s" % vm_name
+    cmd = (''' ps -ef |grep %s/%s.qcow2 '''
+           '''|grep -v 'grep'|awk '{print $2}' ''' % (imgpath, vm_name))
     status, output = commands.getstatusoutput(cmd)
     if status:
         breakprint(output)
         os.sys.exit(status)
-    if "-name %s" % vm_name in output:
-        breakprint(('The vm is running, won\'t remove it.'))
+    if output:
+        breakprint(('The vm is running, won\'t remove it.\n'
+                    'The pid of the vm is %s, if the vm has '
+                    'not a system installed, you can use kill -9 %s '
+                    'to shutdown the vm.\n'
+                    'But if the vm has a system started, '
+                    'please shutdown it inside the system.')
+                   % (output, output))
         os.sys.exit(0)
-    imgpath = '/var/vmimgs'
-    clipath = '/var/vmcli'
     vmimg = '%s/%s.qcow2' % (imgpath, vm_name)
-    vmcli = '%s/%s.sh' % (clipath, vm_name)
+    vmcli = '%s/%s.sh' % (cmdpath, vm_name)
     if not os.path.exists(vmimg) and not os.path.exists(vmcli):
         breakprint(('%s does not exist, will do nothing') % vm_name)
         os.sys.exit(0)
@@ -529,18 +543,21 @@ if __name__ == "__main__":
                         help='Start a vm in snapshot mode')
     parser.add_argument("--version",
                         action="version",
-                        version="%(prog)s 0.28")
+                        version="%(prog)s 0.29")
     args = parser.parse_args(sys.argv[1:])
 
+    imgpath = '/var/vmimgs'
+    cmdpath = '/var/vmcli'
+
     if ''.join(sys.argv[1:]) == '--list':
-        listvms()
+        listvms(imgpath)
         os.sys.exit(0)
     elif args.lavms == 'true' and sys.argv[1:].remove("--list") != []:
         breakprint("Please do not use --list with other args.")
         os.sys.exit(1)
 
     if ''.join(sys.argv[1:]) == '--remove':
-        removevm()
+        removevm(imgpath, cmdpath)
     elif args.ifrm == 'true' and sys.argv[1:].remove('--remove') != []:
         breakprint('Please do not use --remove with other args.')
         os.sys.exit(1)
@@ -561,7 +578,13 @@ if __name__ == "__main__":
     snswitch = args.snswitch
 
     if ifrun == "true" and snswitch == "true":
-        new_vm = NewVM(vm_name, switch, m_size, c_nums, g_vnc)
+        new_vm = NewVM(vm_name,
+                       switch,
+                       m_size,
+                       c_nums,
+                       imgpath,
+                       cmdpath,
+                       g_vnc)
         status, gcmdpath, vm_name = new_vm.VM_srp()
         cmdtext, vnc_port = readcmd(gcmdpath)
         tmpcmd = cmdtext + "-snapshot \\\n"
@@ -578,7 +601,13 @@ if __name__ == "__main__":
         os.sys.exit(0)
 
     elif ifrun == "true" and snswitch == "false":
-        new_vm = NewVM(vm_name, switch, m_size, c_nums, g_vnc)
+        new_vm = NewVM(vm_name,
+                       switch,
+                       m_size,
+                       c_nums,
+                       imgpath,
+                       cmdpath,
+                       g_vnc)
         status, gcmdpath, vm_name = new_vm.VM_srp()
         if status == 1:
             vmfcmd, vnc_port = readcmd(gcmdpath)
@@ -622,7 +651,13 @@ if __name__ == "__main__":
             os.sys.exit(status)
 
     elif ifrun == "false" and vmcdrom == "false":
-        new_vm = NewVM(vm_name, switch, m_size, c_nums, g_vnc)
+        new_vm = NewVM(vm_name,
+                       switch,
+                       m_size,
+                       c_nums,
+                       imgpath,
+                       cmdpath,
+                       g_vnc)
         status, gcmdpath, vm_name = new_vm.VM_srp()
         if status == 1:
             vmfcmd, vmc_port = readcmd(gcmdpath)
