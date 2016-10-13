@@ -515,13 +515,19 @@ def if_rm(filepath):
         return if_rm(filepath)
 
 
-def vid():
-    vid = raw_input('Please input the vlan id:\n>')
-    if vid == '':
+def vid(cmdpath, vm_name):
+    clipath = os.path.join(cmdpath, vm_name + '.sh')
+    if os.path.isfile(clipath):
+        return ''
+    invid = raw_input('Please input the vlan id:\n>')
+    if invid == '':
         breakprint('Will not use vlan')
     else:
         try:
-            vid = int(vid)
+            invid = int(invid)
+            if invid > 4096:
+                breakprint("Please input a vlan id less than 4096")
+                os.sys.exit(1)
         except ValueError:
             breakprint("Please input a number(<=4096)")
             os.sys.exit(1)
@@ -565,8 +571,8 @@ if __name__ == "__main__":
                         action="store",
                         dest="switch",
                         default="switch",
-                        metavar="LINUX BRIDGE",
-                        help="specify the linux bridge you want to use.")
+                        metavar="BRIDGE NAME",
+                        help="specify the bridge(ovs/bridge) you want to use.")
     parser.add_argument("--run",
                         action="store_const",
                         dest="vmrun",
@@ -605,11 +611,13 @@ if __name__ == "__main__":
                         help='Start a vm under ovs bridge')
     parser.add_argument("--version",
                         action="version",
-                        version="%(prog)s 0.31")
+                        version="%(prog)s 0.32")
     args = parser.parse_args(sys.argv[1:])
-
-    imgpath = '/var/vmimgs'
-    cmdpath = '/var/vmcli'
+    progpath = '/var'
+    imgdst = 'vmimgs'
+    cmddst = 'vmcli'
+    imgpath = os.path.join(progpath, imgdst)
+    cmdpath = os.path.join(progpath, cmddst)
 
     if ''.join(sys.argv[1:]) == '--list':
         listvms(imgpath)
@@ -642,7 +650,8 @@ if __name__ == "__main__":
     if is_ovs == 'true':
         flag = 'o'
         breakprint('You are using ovs as the bridge')
-        vid = vid()
+        vid = vid(cmdpath, vm_name)
+        print vid
     else:
         flag = 's'
 
