@@ -229,28 +229,24 @@ class NewVM(object):
                 return 301, 3004
 
     def create_switch(self, switch):
+        ifdsrppath = '/etc/qemu-%s-ifdown' % switch
         if self.flag == 'o':
-            if self.vid == '':
-                ifsrppath = '/etc/ovs-%s-ifup' % switch
-                ifscript = ('#!/bin/sh\n'
-                            'switch=%s\n'
-                            'ip link set $1 up\n'
-                            'ovs-vsctl add-port ${switch} $1\n' % switch)
-            else:
-                ifsrppath = '/etc/ovs-%s-%s-ifup' % (switch, self.vid)
-                ifscript = ('#!/bin/sh\n'
-                            'switch=%s\n'
-                            'ip link set $1 up\n'
-                            'ovs-vsctl add-port ${switch} $1 tag=%s' %
-                            (switch, self.vid))
-            ifdsrppath = '/etc/ovs-%s-ifup' % switch
+            ifsrppath = '/etc/qemu-%s-%s-ifup' % (switch, self.vid)
             ifdscript = ('#!/bin/sh\n'
                          'switch=%s\n'
                          'ip link set $1 down\n'
                          'ovs-vsctl del-port ${switch} $1' % switch)
+            ifscript = ('#!/bin/sh\n'
+                        'switch=%s\n'
+                        'ip link set $1 up\n'
+                        'ovs-vsctl add-port ${switch} $1' % switch)
+            if self.vid == '0':
+                ifscript += '\n'
+            else:
+                tagstr = 'tag=%s\n' % self.vid
+                ifscript += tagstr
         elif self.flag == 's':
-            ifsrppath = "/etc/qemu-%s-ifup" % switch
-            ifdsrppath = '/etc/qemu-%s-ifdown' % switch
+            ifsrppath = "/etc/qemu-%s-lbr-ifup" % switch
             ifscript = ('#!/bin/sh\n'
                         'switch=%s\n'
                         'ip link set $1 up\n'
@@ -259,16 +255,16 @@ class NewVM(object):
                          'switch=%s\n'
                          'ip link set $1 down\n'
                          'brctl delif ${switch} $1\n') % switch
-        if not os.path.exists(ifsrppath):
-            iswrite = open(ifsrppath, 'w')
-            iswrite.write(ifscript)
-            iswrite.close()
-            os.system("chmod +x %s" % ifsrppath)
-        if not os.path.exists(ifdsrppath):
-            iswrite = open(ifdsrppath, 'w')
-            iswrite.write(ifdscript)
-            iswrite.close()
-            os.system("chmod +x %s" % ifdsrppath)
+        else:
+            self.bp('The bridge flag %s is invalid.' % self.flag)
+            os.sys.exit(1)
+        for (path，script) in [(ifsrppath, ifscript),
+                               (ifdsrppath, ifdscript)]：
+            if not os.path.exists(path):
+                iswrite = open(path, 'w')
+                iswrite.write(script)
+                iswrite.close()
+                os.system("chmod +x %s" % path)
         cmd = "ip link show  %s" % switch
         status, output = commands.getstatusoutput(cmd)
         if status:
@@ -276,8 +272,11 @@ class NewVM(object):
             self.bp("Creaing %s" % switch)
             if self.flag == 's':
                 cmd = "brctl addbr %s" % switch
-            if self.flag == 'o':
+            elif self.flag == 'o':
                 cmd = "ovs-vsctl add-br %s" % switch
+            else:
+                self.bp('The bridge flag %s is invalid.' % self.flag)
+                os.sys.exit(1)
             status, output = commands.getstatusoutput(cmd)
             if status:
                 self.bp(output)
@@ -438,14 +437,25 @@ def readcmd(gcmdpath):
     vnc_p = int(o_p) + 5900
     return cmdtext, vnc_p
 
+def readtag(vmcli):
+    f_vm = open(vmcli)
+    try:
+        cmdtext = f_v.read9()
+    finally:
+        f_vm.close()
+    tagptn = re.compile(r"script=/etc/qemu\-.*?\-(.*?)-ifup")
+    vmtag = tagptn.findall(cmdtext)[0]
+    return vmtag
+
 
 def listvms(imgpath):
     cmd = "ps aux |grep qemu"
-    if not os.path.exists(imgpath):
+    if not os.path.isdir(imgpath):
         breakprint("No images found, please try to define a new vm.")
         os.sys.exit(1)
     img_ptn = re.compile(r"(.*?).qcow2")
     vmname_ptn = re.compile(r"\-name (.*?) \-.*? \-vnc \:(\d+) ")
+    vm_tag_ptn = re.compile(r"\-name (.*?) \-,*?script=/etc/qemu\-.*?\-(.*?)-ifup")
     status, output = commands.getstatusoutput(cmd)
     if status:
         breakprint(output)
@@ -457,6 +467,11 @@ def listvms(imgpath):
         vnc_p = int(port) + 5900
         print ">\t%s\t\t%s" % (vm_name, vnc_p)
     breakprint("Please connect with the right port")
+    breakprint(("The running vms and their corresponding VLAN ID(TAG):\n\n"
+    nm_tag_list = vm_tag_ptn.findall(output)
+    for vm_name, tag in nm_tag_list:
+        print ">\t%s\t\t%s" % (vm_name, tag)
+    breakprint("Configure inside guest with right IP address of the right vlan.")
     imgslist = os.listdir(imgpath)
     all_names = [img_ptn.findall(img)[0] for img in imgslist]
     all_imgs = '\n>\t'.join(all_names)
@@ -467,8 +482,10 @@ def listvms(imgpath):
 def removevm(imgpath, cmdpath):
     vm_name = raw_input(("Please specify the vm name "
                          "that you want to remove.\n>"))
-    cmd = (''' ps -ef |grep %s/%s.qcow2 '''
-           '''|grep -v 'grep'|awk '{print $2}' ''' % (imgpath, vm_name))
+    vmimg = os.path.join(imgpath, vm_vname + '.qcow2')
+    vmcli = os.path.join(cmdpath, vm_vname + '.sh')
+    cmd = (("ps -ef |grep %s"
+            "|grep -v 'grep'|awk '{print $2}' ") % vmimg)
     status, output = commands.getstatusoutput(cmd)
     if status:
         breakprint(output)
@@ -482,17 +499,15 @@ def removevm(imgpath, cmdpath):
                     'please shutdown it inside the system.')
                    % (output, output))
         os.sys.exit(0)
-    vmimg = '%s/%s.qcow2' % (imgpath, vm_name)
-    vmcli = '%s/%s.sh' % (cmdpath, vm_name)
-    if not os.path.exists(vmimg) and not os.path.exists(vmcli):
+    if not os.path.isfile(vmimg) and not os.path.isfile(vmcli):
         breakprint(('%s does not exist, will do nothing') % vm_name)
         os.sys.exit(0)
-    elif not os.path.exists(vmimg) and os.path.exists(vmcli):
+    elif not os.path.isfile(vmimg) and os.path.isfile(vmcli):
         breakprint(('%s has not image found,'
                     'will delete the script %s') % (vm_name, vmcli))
         if_rm(vmcli)
         os.sys.exit(0)
-    elif os.path.exists(vmimg) and not os.path.exists(vmcli):
+    elif os.path.isfile(vmimg) and not os.path.isfile(vmcli):
         breakprint(('%s has not script found, '
                     'will delete the vm image %s.') % (vm_name, vmimg))
         if_rm(vmimg)
@@ -503,35 +518,65 @@ def removevm(imgpath, cmdpath):
         os.sys.exit(0)
 
 
-def if_rm(filepath):
+def if_rm(file):
     chc = raw_input(('Are you sure to delete the %s?'
-                     '(Y/N)\n>') % filepath)
+                     '(Y/N)\n>') % file)
     if chc == 'Y' or chc == 'y':
-        os.remove(filepath)
+        os.remove(file)
     elif chc == 'N' or chc == 'n':
         breakprint(('Do nothing, just quit.'))
+        os.sys.exit(0)
     else:
         breakprint(('Invalid input, please Input Y/N.'))
-        return if_rm(filepath)
+        return if_rm(file)
 
 
 def vid(cmdpath, vm_name):
-    clipath = os.path.join(cmdpath, vm_name + '.sh')
-    if os.path.isfile(clipath):
-        return ''
-    invid = raw_input('Please input the vlan id:\n>')
-    if invid == '':
-        breakprint('Will not use vlan')
+    vmcli = os.path.join(cmdpath, vm_vname + '.sh')
+    tag = readtag(vmcli)
+    if os.path.isfile(vmcli):
+        breakprint('%s has configuration, checking tag.')
+        if tag == 'lbr':
+            breakprint(('%s is under a linux bridge,'
+                        'does not support vlan.') % vm_name)
+            newtag = inputtag()
+            if_rm(vmcli)
+        else:
+            newtag = taghandle(tag)
+    else:
+        newtag = inputtag(vmcli)
+    return newtag
+            
+            
+def inputtag()
+    chc = raw_input('If to build the vm to use the ovs?(Y/N)\n>')
+    if chc == 'Y' or chc == 'y':
+        intag = raw_input('Please input the vlan id:\n>')
+        newtag = taghandle(intag)
+    elif chc == 'N' or chc == 'n':
+        breakprint('Do nothing, just quit.')
+        os.sys.exit(0)
+    else:
+        breakprint('Invalid input, just quit.')
+        os.sys.exit(2)
+    return newtag
+    
+    
+def taghandle(tag):
+    if tag == '' or '0':
+        breakprint('Using default vlan')
+        newtag = '0'
     else:
         try:
-            invid = int(invid)
-            if invid > 4096:
-                breakprint("Please input a vlan id less than 4096")
+            newtag = int(tag)
+            if newtag > 4096 or newtag < 0:
+                breakprint(("Invaid vlan id %s, should "
+                            "less than 4096, and more than 0") % tag)
                 os.sys.exit(1)
         except ValueError:
-            breakprint("Please input a number(<=4096)")
+            breakprint("Invalid tag %s , tag must be a number." % tag)
             os.sys.exit(1)
-    return vid
+    return newtag
 
 
 def breakprint(cmd):
@@ -611,7 +656,7 @@ if __name__ == "__main__":
                         help='Start a vm under ovs bridge')
     parser.add_argument("--version",
                         action="version",
-                        version="%(prog)s 0.32")
+                        version="%(prog)s 0.33")
     args = parser.parse_args(sys.argv[1:])
     progpath = '/var'
     imgdst = 'vmimgs'
@@ -649,9 +694,8 @@ if __name__ == "__main__":
     is_ovs = args.is_ovs
     if is_ovs == 'true':
         flag = 'o'
-        breakprint('You are using ovs as the bridge')
-        vid = vid(cmdpath, vm_name)
-        print vid
+        breakprint('You are to use ovs as the bridge')
+        vid = vid(vmcli, vm_name)
     else:
         flag = 's'
 
