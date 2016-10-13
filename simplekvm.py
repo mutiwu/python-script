@@ -18,7 +18,9 @@ class NewVM(object):
                  c_nums,
                  imgpath,
                  cmdpath,
-                 g_vnc):
+                 g_vnc,
+                 flag,
+                 vid):
         self.imgpath = imgpath
         self.cmdpath = cmdpath
         self.vm_name = vm_name
@@ -26,6 +28,8 @@ class NewVM(object):
         self.c_nums = c_nums
         self.vm_vnc = g_vnc
         self.switch = switch
+        self.flag = flag
+        self.vid = vid
 
     def bp(self, str):
         breakline = '>' + "." * 29
@@ -220,26 +224,59 @@ class NewVM(object):
                 return 301, 3004
 
     def create_switch(self, switch):
-        ifsrppath = "/etc/qemu-%s-ifup" % switch
-        ifscript = ('#!/bin/sh\n'
-                    'switch=%s\n'
-                    'ip link set $1 up\n'
-                    'brctl addif ${switch} $1\n') % switch
+        if self.flag == 'o':
+            if self.vid == '':
+                ifsrppath = '/etc/ovs-%s-ifup' % switch
+                ifscript = ('#!/bin/sh\n'
+                            'switch=%s\n'
+                            'ip link set $1 up\n'
+                            'ovs-vsctl add-port ${switch} $1\n' % switch)
+            else:
+                ifsrppath = '/etc/ovs-%s-%s-ifup' % (switch, self.vid)
+                ifscript = ('#!/bin/sh\n'
+                            'switch=%s\n'
+                            'ip link set $1 up\n'
+                            'ovs-vsctl add-port ${switch} $1 tag=%s' %
+                            (switch, self.vid))
+            ifdsrppath = '/etc/ovs-%s-ifup' % switch
+            ifdscript = ('#!/bin/sh\n'
+                         'switch=%s\n'
+                         'ip link set $1 down\n'
+                         'ovs-vsctl del-port ${switch} $1' % switch)
+        elif self.flag == 's':
+            ifsrppath = "/etc/qemu-%s-ifup" % switch
+            ifdsrppath = '/etc/qemu-%s-ifdown' % switch
+            ifscript = ('#!/bin/sh\n'
+                        'switch=%s\n'
+                        'ip link set $1 up\n'
+                        'brctl addif ${switch} $1\n') % switch
+            ifdscript = ('#!/bin/sh\n'
+                         'switch=%s\n'
+                         'ip link set $1 down\n'
+                         'brctl delif ${switch} $1\n') % switch
         if not os.path.exists(ifsrppath):
             iswrite = open(ifsrppath, 'w')
             iswrite.write(ifscript)
             iswrite.close()
             os.system("chmod +x %s" % ifsrppath)
+        if not os.path.exists(ifdsrppath):
+            iswrite = open(ifdsrppath, 'w')
+            iswrite.write(ifdscript)
+            iswrite.close()
+            os.system("chmod +x %s" % ifdsrppath)
         cmd = "ip link show  %s" % switch
         status, output = commands.getstatusoutput(cmd)
         if status:
             self.bp(output)
             self.bp("Creaing %s" % switch)
-            cmd = "brctl addbr %s" % switch
+            if self.flag == 's':
+                cmd = "brctl addbr %s" % switch
+            if self.flag == 'o':
+                cmd = "ovs-vsctl add-br %s" % switch
             status, output = commands.getstatusoutput(cmd)
             if status:
                 self.bp(output)
-                self.bp("brctl hit error, quit")
+                self.bp("%s created failed, quit" % switch)
                 os.sys.exit(status)
         cmd = "ip link set %s up" % switch
         status, output = commands.getstatusoutput(cmd)
@@ -247,7 +284,7 @@ class NewVM(object):
             self.bp(output)
             self.bp("Setup %s failed" % switch)
             os.sys.exit(status)
-        return ifsrppath
+        return ifsrppath, ifdsrppath
 
     def VM_srp(self):
         vm_img, vm_name = self.img_handle(self.vm_name)
@@ -260,7 +297,7 @@ class NewVM(object):
         mac_addr = self.new_mac()
         vport = self.vnc_port(self.vm_vnc)
         mtearg = self.mtarg()
-        ifscript = self.create_switch(self.switch)
+        ifs, ifds = self.create_switch(self.switch)
         vm_qemu = "/usr/libexec/qemu-kvm \\\n"
         vm_bsarg = ('-realtime mlock=off \\\n'
                     '-no-user-config -nodefaults -rtc base=utc \\\n'
@@ -286,7 +323,8 @@ class NewVM(object):
         imgarg = ('-drive file=%s,if=none,id=drive-scsi0-0-0-0,'
                   'format=qcow2,cache=none \\\n') % vm_img
         vncarg = "-vnc :%s \\\n" % vport
-        taparg = "-netdev tap,id=netdev,script=%s,vhost=on \\\n" % ifscript
+        taparg = ("-netdev tap,id=netdev,script=%s,"
+                  "downscript=%s,vhost=on \\\n") % (ifs, ifds)
         vnicarg = ('-device virtio-net-pci,netdev=netdev,id=net1,'
                    'mac=%s,bus=pci.0,addr=0x5 \\\n') % mac_addr
         qmparg = "-qmp unix:/tmp/qmp%ssocket.sock,server,nowait \\\n" % vm_name
@@ -472,6 +510,19 @@ def if_rm(filepath):
         return if_rm(filepath)
 
 
+def vid():
+    vid = raw_input('Please input the vlan id:\n>')
+    if vid == '':
+        breakprint('Will not use vlan')
+    else:
+        try:
+            vid = int(vid)
+        except ValueError:
+            breakprint("Please input a number(<=4096)")
+            os.sys.exit(1)
+    return vid
+
+
 def breakprint(cmd):
     breakline = ">" + "." * 29
     print breakline
@@ -541,9 +592,15 @@ if __name__ == "__main__":
                         const='true',
                         default='false',
                         help='Start a vm in snapshot mode')
+    parser.add_argument("--ovs",
+                        action='store_const',
+                        dest='is_ovs',
+                        const='true',
+                        default='false',
+                        help='Start a vm under ovs bridge')
     parser.add_argument("--version",
                         action="version",
-                        version="%(prog)s 0.29")
+                        version="%(prog)s 0.30")
     args = parser.parse_args(sys.argv[1:])
 
     imgpath = '/var/vmimgs'
@@ -576,6 +633,13 @@ if __name__ == "__main__":
     switch = args.switch
     vmcdrom = args.vmcdrom
     snswitch = args.snswitch
+    is_ovs = args.is_ovs
+    if is_ovs == 'true':
+        flag = 'o'
+        breakprint('You are using ovs as the bridge')
+        vid = vid()
+    else:
+        flag = 's'
 
     if ifrun == "true" and snswitch == "true":
         new_vm = NewVM(vm_name,
@@ -584,7 +648,9 @@ if __name__ == "__main__":
                        c_nums,
                        imgpath,
                        cmdpath,
-                       g_vnc)
+                       g_vnc,
+                       flag,
+                       vid)
         status, gcmdpath, vm_name = new_vm.VM_srp()
         cmdtext, vnc_port = readcmd(gcmdpath)
         tmpcmd = cmdtext + "-snapshot \\\n"
@@ -607,7 +673,9 @@ if __name__ == "__main__":
                        c_nums,
                        imgpath,
                        cmdpath,
-                       g_vnc)
+                       g_vnc,
+                       flag,
+                       vid)
         status, gcmdpath, vm_name = new_vm.VM_srp()
         if status == 1:
             vmfcmd, vnc_port = readcmd(gcmdpath)
@@ -657,7 +725,9 @@ if __name__ == "__main__":
                        c_nums,
                        imgpath,
                        cmdpath,
-                       g_vnc)
+                       g_vnc,
+                       flag,
+                       vid)
         status, gcmdpath, vm_name = new_vm.VM_srp()
         if status == 1:
             vmfcmd, vmc_port = readcmd(gcmdpath)
