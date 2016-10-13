@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 # coding=utf-8
+'''
+Created on Oct 13, 2016
+
+@author: Qian Guo
+'''
 
 import os
 import commands
@@ -600,7 +605,7 @@ if __name__ == "__main__":
                         help='Start a vm under ovs bridge')
     parser.add_argument("--version",
                         action="version",
-                        version="%(prog)s 0.30")
+                        version="%(prog)s 0.31")
     args = parser.parse_args(sys.argv[1:])
 
     imgpath = '/var/vmimgs'
