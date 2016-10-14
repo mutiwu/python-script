@@ -272,7 +272,7 @@ class NewVM(object):
         status, output = commands.getstatusoutput(cmd)
         if status:
             self.bp(output)
-            self.bp("Creaing %s" % switch)
+            self.bp("Creating %s" % switch)
             if self.flag == 's':
                 cmd = "brctl addbr %s" % switch
             elif self.flag == 'o':
@@ -286,6 +286,7 @@ class NewVM(object):
                 self.bp("%s created failed, quit" % switch)
                 os.sys.exit(status)
         cmd = "ip link set %s up" % switch
+        print cmd
         status, output = commands.getstatusoutput(cmd)
         if status:
             self.bp(output)
@@ -459,29 +460,35 @@ def listvms(imgpath):
         os.sys.exit(1)
     img_ptn = re.compile(r"(.*?).qcow2")
     vmname_ptn = re.compile(r"\-name (.*?) \-.*? \-vnc \:(\d+) ")
-    tag_ptn = r"\-name (.*?) \-,*?script=/etc/qemu\-.*?\-(.*?)-ifup"
-    vm_tag_ptn = re.compile(tag_ptn)
+    tag_ptn = ("\-name (.*?) .*? "
+               "\-netdev tap,id=netdev,"
+               "script=/etc/qemu-(.*?)-(.*?)-ifup")
+    vm_tag_ptn = re.compile(r"%s" % tag_ptn)
     status, output = commands.getstatusoutput(cmd)
     if status:
         breakprint(output)
         os.sys.exit(status)
     nm_pt_list = vmname_ptn.findall(output)
+    nm_tag_list = vm_tag_ptn.findall(output)
+    print nm_tag_list
     breakprint(("The running vms and their corresponding vnc ports:\n\n"
-                '\tVM Names\t\tVNC ports:'))
+                '\tGuest\t\tVNC ports:'))
     for vm_name, port in nm_pt_list:
         vnc_p = int(port) + 5900
         print ">\t%s\t\t%s" % (vm_name, vnc_p)
     breakprint("Please connect with the right port")
-    breakprint(("The running vms and their corresponding VLAN ID(TAG):\n\n"))
-    nm_tag_list = vm_tag_ptn.findall(output)
-    for vm_name, tag in nm_tag_list:
-        print ">\t%s\t\t%s" % (vm_name, tag)
-        breakprint(("Configure inside guest with "
-                    "right IP address of the right vlan."))
+    breakprint(("The running vms and their corresponding VLAN ID(TAG):\n\n"
+                "\tGuset\t\tOVS BR\t\tVLANID:"))
+    for vm_name, ovs, tag in nm_tag_list:
+        if tag == 'lbr':
+            tag = "linux bridge, no VLAN configured"
+        print ">\t%s\t\t%s\t\t%s" % (vm_name, ovs, tag)
+    breakprint(("Configure inside guest with "
+                "right IP address of the right vlan."))
     imgslist = os.listdir(imgpath)
     all_names = [img_ptn.findall(img)[0] for img in imgslist]
     all_imgs = '\n>\t'.join(all_names)
-    print('All the vms that have imgs list below:\n\n\tVM Names')
+    print('All the vms that have imgs list below:\n\n\tGuest')
     breakprint('>\t%s' % all_imgs)
 
 
@@ -558,9 +565,7 @@ def inputtag():
     chc = raw_input('If to build the vm to use the ovs?(Y/N)\n>')
     if chc == 'Y' or chc == 'y':
         intag = raw_input('Please input the vlan id:\n>')
-        print intag
         newtag = taghandle(intag)
-        print newtag
     elif chc == 'N' or chc == 'n':
         breakprint('Do nothing, just quit.')
         os.sys.exit(0)
@@ -577,7 +582,6 @@ def taghandle(tag):
     else:
         try:
             newtag = int(tag)
-            print newtag
             if newtag > 4096 or newtag < 0:
                 breakprint(("Invaid vlan id %s, should "
                             "less than 4096, and more than 0") % tag)
@@ -665,7 +669,7 @@ if __name__ == "__main__":
                         help='Start a vm under ovs bridge')
     parser.add_argument("--version",
                         action="version",
-                        version="%(prog)s 0.35")
+                        version="%(prog)s 0.38")
     args = parser.parse_args(sys.argv[1:])
     progpath = '/var'
     imgdst = 'vmimgs'
