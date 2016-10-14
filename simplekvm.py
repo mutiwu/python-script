@@ -488,8 +488,8 @@ def listvms(imgpath):
 def removevm(imgpath, cmdpath):
     vm_name = raw_input(("Please specify the vm name "
                          "that you want to remove.\n>"))
-    vmimg = os.path.join(imgpath, vm_vname + '.qcow2')
-    vmcli = os.path.join(cmdpath, vm_vname + '.sh')
+    vmimg = os.path.join(imgpath, vm_name + '.qcow2')
+    vmcli = os.path.join(cmdpath, vm_name + '.sh')
     cmd = (("ps -ef |grep %s"
             "|grep -v 'grep'|awk '{print $2}' ") % vmimg)
     status, output = commands.getstatusoutput(cmd)
